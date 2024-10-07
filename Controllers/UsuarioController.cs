@@ -28,7 +28,7 @@ public class UsuarioController:ControllerBase{
 
     [HttpPut]
     public IActionResult Editar([FromForm]Usuario usuario){
-        context.Usuario
+        // context.Usuario
         return Ok();
     }
 

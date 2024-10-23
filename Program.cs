@@ -64,6 +64,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+//para las imagenes en el wwwroot
+app.UseStaticFiles();
 
 app.UseAuthorization();
 app.UseAuthentication();

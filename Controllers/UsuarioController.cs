@@ -33,13 +33,15 @@ public class UsuarioController:ControllerBase{
 
     [HttpPut("avatar")]
     public IActionResult EditarAvatar([FromForm] IFormFile avatar){
-        
+        return Ok();
     }
 
     //Endpoint para registrar nuevo usuario.
     [AllowAnonymous] 
     [HttpPost]
     public IActionResult Crear([FromForm] Usuario usuario){
+        usuario.Avatar = "default.jpg";
+        usuario.Password = HashearPassword(usuario.Password);
         context.Usuario.Add(usuario);
         context.SaveChanges();
         return Ok("Usuario creado con éxito");
@@ -56,7 +58,7 @@ public class UsuarioController:ControllerBase{
     }
 
     private string GenerarToken(Usuario usuario){
-
+        return "";
     }
 
 }

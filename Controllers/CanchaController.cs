@@ -32,5 +32,6 @@ public class CanchaController:ControllerBase{
                 return Ok("Cancha creada con éxito");
             }
         }
+        return BadRequest();
     }
 }

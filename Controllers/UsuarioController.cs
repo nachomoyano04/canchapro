@@ -69,7 +69,7 @@ public class UsuarioController:ControllerBase{
         var usuario = context.Usuario.FirstOrDefault(u => u.Id == IdUsuario);
         if(usuario != null && avatar != null && avatar.Length > 0){
             var fileName = $"{IdUsuario}_{Guid.NewGuid()}{Path.GetExtension(avatar.FileName)}";
-            var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img", fileName);
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img/usuario", fileName);
             using (var stream = new FileStream(path, FileMode.Create)){
                 avatar.CopyTo(stream);
             }

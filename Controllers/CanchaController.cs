@@ -20,11 +20,13 @@ public class CanchaController:ControllerBase{
         return BadRequest("No existen canchas");
     }
 
-    //http://ip:puerto/api/cancha
+    //En un principio allowanonymous, despues solo los del rol administrador...
+    [AllowAnonymous]
     [HttpPost]
     public IActionResult CrearCancha([FromForm] Cancha cancha){
         if(cancha != null){
             cancha.Estado = 1;
+            cancha.Imagen = "default.jpg";
             context.Cancha.Add(cancha);
             int filasInsertadas = context.SaveChanges();
             Console.WriteLine($"Filas insertadas: {filasInsertadas}");

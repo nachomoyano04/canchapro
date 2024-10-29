@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -27,10 +28,57 @@ public class TurnoController:ControllerBase{
         return BadRequest("La cancha no existe");
     }
 
+    [HttpGet("dia/{idCancha}")]
+    public IActionResult DisponiblesPorDia(int idCancha, [FromForm] DateTime fecha){
+        //traer todos los horarios que x cancha este sin turnos x día.
+        var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
+        if(cancha == null){
+            return BadRequest("No existe la cancha");
+        }
+        //paso1: traer los horarios disponibles que tiene esa cancha ese día
+        var horariosDisponible = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == fecha.DayOfWeek.ToString());
+        if(horariosDisponible == null){
+            return BadRequest($"No existen horarios para la cancha {cancha.Id} en la fecha {fecha.Date.ToShortDateString()}");
+        }
+        var horarios = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponible.HorariosId);
+        //paso2: buscamos los turnos que hay ese día
+        var turnosXDia = context.Turno.Where(t => t.FechaInicio.Date.Equals(fecha.Date))
+            .Select(t => new {horaInicio = t.FechaInicio.Hour, horaFin = t.FechaFin.Hour})
+            .ToList();
+        //paso3: armamos una lista de horariosDisponibles
+        var turnosDisponibles = new List<object>();
+        Console.WriteLine($"hora inicio: {horarios.HoraInicio.Hour}");
+        Console.WriteLine($"hora fin: {horarios.HoraFin.Hour}");
+        for(int i= horarios.HoraInicio.Hour; i < horarios.HoraFin.Hour; i++){
+            bool ocupado = turnosXDia.Any(t => i >= t.horaInicio && i < t.horaFin);
+            if(!ocupado){
+                turnosDisponibles.Add(new {horaInicio = i, horaFin = i+1});
+            }
+        }
+        return Ok(turnosDisponibles);
+    }
+
     [HttpPost("{idCancha}")]
     public IActionResult NuevoTurno(int idCancha, [FromForm] Turno turno, [FromForm] Pago pago){
         var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
         if(cancha != null){
+            if(turno.FechaInicio > turno.FechaFin){
+                return BadRequest("$La fecha de inicio no puede ser mayor a la fecha de fin");
+            }
+            var diaSemanal = turno.FechaInicio.DayOfWeek.ToString();
+            if(turno.FechaInicio.Date.ToString() != turno.FechaFin.Date.ToString()){
+                return BadRequest($"Los horarios de inicio y fin deben ser el mismo dia");
+            }
+            var horariosDisponible = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == diaSemanal);
+            if(horariosDisponible == null){
+                return BadRequest($"La cancha {idCancha} no esta disponible ese día ");
+            }
+            //chequeamos que los horarios del turno la cancha este disponible 
+            //(no por otros turnos si no por los horarios de la propia cancha)
+            var horarios = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponible.HorariosId);
+            if(!(turno.FechaInicio.Hour >= horarios.HoraInicio.Hour && turno.FechaFin.Hour <= horarios.HoraFin.Hour)){
+                return BadRequest($"Los horarios de inicio y/o fecha fin no esta disponible la cancha {idCancha}");
+            }
             var minutosTurno = (turno.FechaFin-turno.FechaInicio).TotalMinutes;
             //el monto de la reserva es el 10% del precio total del turno
             double precioTotalTurno = Double.Parse(cancha.PrecioPorHora.ToString()) * (minutosTurno/60);

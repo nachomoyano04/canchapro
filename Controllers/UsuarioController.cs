@@ -16,9 +16,11 @@ public class UsuarioController:ControllerBase{
     private readonly IConfiguration configuration;
     private readonly DataContext context;
     private readonly int IdUsuario;
-    public UsuarioController(DataContext context, IConfiguration configuration, IHttpContextAccessor httpContextAccessor){
+    private IWebHostEnvironment environment;
+    public UsuarioController(DataContext context, IConfiguration configuration, IHttpContextAccessor httpContextAccessor, IWebHostEnvironment environment){
         this.context = context;
         this.configuration = configuration;
+        this.environment = environment;
         string claim = httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         IdUsuario = Parsear(claim);
     }
@@ -31,7 +33,7 @@ public class UsuarioController:ControllerBase{
     }
 
     [AllowAnonymous]
-    [HttpGet("login")]
+    [HttpPost("login")]
     public IActionResult Login([FromForm]string correo,[FromForm]string password){
         if(!correo.IsNullOrEmpty() && !password.IsNullOrEmpty()){
             var usuario = context.Usuario.FirstOrDefault(u => u.Correo.ToLower() == correo.ToLower() && u.Password == HashearPassword(password));
@@ -91,10 +93,45 @@ public class UsuarioController:ControllerBase{
         return BadRequest("La password actual no coincide");
     }
 
+    [HttpPut("NuevaPassword")]
+    public IActionResult NuevaPassword([FromForm] string nuevaPassword){
+        var usuario = context.Usuario.FirstOrDefault(u => u.Id == IdUsuario);
+        if(usuario != null){
+            usuario.Password = HashearPassword(nuevaPassword);
+            context.SaveChanges();
+            return Ok("Password actualizada...");
+        }
+        return BadRequest("No existe propietario.");
+    }
+
+    [AllowAnonymous]
+    [HttpPost("recuperarPasswrod")]
+    public IActionResult RecuperarPassword([FromForm] string correo){
+        var usuario = context.Usuario.FirstOrDefault(u => u.Correo.ToLower().Equals(correo.ToLower()));
+        if(usuario != null){
+            string dominio = "";
+            if(environment.IsDevelopment()){
+                // dominio = HttpContext.Connection.RemoteIpAddress.MapToIPv4().ToString();
+                dominio = "http://localhost:5021/api/usuario/nuevapassword";
+            }else{
+                dominio = "www.canchapro.com";
+            }
+            string token = GenerarToken(usuario);
+            dominio += $"?access_token={token}";
+            string mensajeEnHtml = $"<h1>Hola {usuario.Nombre}!</h1>"
+            +"<p>Para elegir una nueva password toque el siguiente boton:</p>"
+            +$"<a href='{dominio}'><button style='background-color:#007bff; padding: 5px; margin: 10px 0px;'>Nueva password</button></a>";
+            EnviarMail("CanchaPro","nachomoyag@gmail.com", usuario.Nombre+" "+usuario.Apellido, correo, mensajeEnHtml);
+            return Ok("Email de recuperacion enviado");
+
+        }
+        return BadRequest("Registrese por favor, no conocemos ese correo.");
+    }
+
     [AllowAnonymous] 
     [HttpPost]
-    public IActionResult Crear([FromForm] Usuario usuario){
-        if(!usuario.Nombre.IsNullOrEmpty() && !usuario.Dni.IsNullOrEmpty() && !usuario.Apellido.IsNullOrEmpty() && !usuario.Correo.IsNullOrEmpty()){
+    public IActionResult Registrar([FromForm] Usuario usuario){
+        if(!usuario.Dni.IsNullOrEmpty() && !usuario.Nombre.IsNullOrEmpty() && !usuario.Dni.IsNullOrEmpty() && !usuario.Apellido.IsNullOrEmpty() && !usuario.Correo.IsNullOrEmpty()){
             usuario.Avatar = "default.jpg";
             usuario.Password = HashearPassword(usuario.Password);
             var usuarioConDni = context.Usuario.FirstOrDefault(u => u.Dni == usuario.Dni);
@@ -137,5 +174,24 @@ public class UsuarioController:ControllerBase{
             signingCredentials: credenciales
         );
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private void EnviarMail(string emisor, string emisorCorreo, string destinatario, string destinatarioCorreo, string mensajeEnHtml){
+        var mensaje = new MimeKit.MimeMessage();
+        mensaje.To.Add(new MailboxAddress(destinatario, destinatarioCorreo));
+        mensaje.From.Add(new MailboxAddress(emisor, emisorCorreo));
+        mensaje.Subject = "Mensaje de recuperacion de contraseña";
+        mensaje.Body = new TextPart("html"){
+            Text = mensajeEnHtml
+        };
+        MailKit.Net.Smtp.SmtpClient client = new MailKit.Net.Smtp.SmtpClient();
+        client.ServerCertificateValidationCallback = (object sender,
+                System.Security.Cryptography.X509Certificates.X509Certificate certificate,
+                System.Security.Cryptography.X509Certificates.X509Chain chain,
+                System.Net.Security.SslPolicyErrors sslPolicyErrors) =>
+            { return true; };
+            client.Connect("smtp.gmail.com", 465, MailKit.Security.SecureSocketOptions.Auto);
+            client.Authenticate(configuration["SMPT:User"], configuration["SMPT:Password"]);//estas credenciales deben estar en el user secrets
+            client.Send(mensaje);
     }
 }

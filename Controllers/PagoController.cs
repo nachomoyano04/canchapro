@@ -20,6 +20,7 @@ public class PagoController:ControllerBase{
             var pago = context.Pago.FirstOrDefault(p => p.Id == turno.PagoId);
             if(pago != null){
                 pago.FechaPagoTotal = DateTime.Now;
+                pago.Estado = 2; //cambiamos el estado del pago a completado...
                 turno.Estado = 2; //completamos tambien el turno!
                 context.SaveChanges();
                 return Ok("Pago realizado y turno completado...");

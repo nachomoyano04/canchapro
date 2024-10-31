@@ -13,7 +13,7 @@ public class ComentarioController:ControllerBase{
         IdUsuario = Int32.Parse(httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
     }
 
-    //Crear comentario
+    //CHEQUEADO
     [HttpPost]
     public IActionResult NuevoComentario([FromForm] Comentario comentario){
         var usuario = context.Usuario.FirstOrDefault(u => u.Id == IdUsuario);
@@ -27,6 +27,10 @@ public class ComentarioController:ControllerBase{
         if(turno.Estado != 2){
             return BadRequest("El turno no se ha completado aún o se ha cancelado...");
         }
+        var comment = context.Comentario.FirstOrDefault(c => c.UsuarioId == IdUsuario && c.TurnoId == turno.Id);
+        if(comment != null){
+            return BadRequest("Ya existe un comentario de este usuario y este turno. Editelo");
+        }
         comentario.Fecha = DateTime.Now;
         comentario.UsuarioId = IdUsuario;
         context.Comentario.Add(comentario);
@@ -34,6 +38,7 @@ public class ComentarioController:ControllerBase{
         return Ok("Gracias por dejar tu reseña!");
     }
 
+    //CHEQUEADO
     [HttpPut("{id}")]
     public IActionResult EditarComentario(int id, [FromForm] Comentario comentario){
         var comment = context.Comentario.FirstOrDefault(c => c.Id == id && c.UsuarioId == IdUsuario);
@@ -47,6 +52,7 @@ public class ComentarioController:ControllerBase{
         return BadRequest("Debe estar logueado para editar este comentario.");
     }
 
+    //CHEQUEADO
     [HttpDelete("{id}")]
     public IActionResult BorrarComentario(int id){
         //eliminamos el comentario de una, pero en produccion deberia
@@ -60,12 +66,22 @@ public class ComentarioController:ControllerBase{
         return BadRequest("Debe estar logueado para borrar este comentario.");
     }
 
+    //CHEQUEADO
+    [HttpGet]
+    public IActionResult MisComentarios(){
+        var comentarios = context.Comentario.Where(c => c.UsuarioId == IdUsuario).ToList();
+        if(comentarios.Count > 0){
+            return Ok(comentarios);
+        }
+        return NoContent();
+    }
+
     [HttpGet("{idCancha}")]
     public IActionResult ComentariosPorCancha(int idCancha){
         var comentarios = context.Comentario.Where(c => c.Turno.CanchaId == idCancha && c.UsuarioId == IdUsuario).ToList();
         if(comentarios.Count > 0){
             return Ok(comentarios);
         }
-        return Ok("Aún no hay comentarios...");
+        return NoContent();
     }
 }

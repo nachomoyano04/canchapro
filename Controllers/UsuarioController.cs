@@ -105,14 +105,14 @@ public class UsuarioController:ControllerBase{
     }
 
     [AllowAnonymous]
-    [HttpPost("recuperarPasswrod")]
+    [HttpPost("recuperarpass")]
     public IActionResult RecuperarPassword([FromForm] string correo){
         var usuario = context.Usuario.FirstOrDefault(u => u.Correo.ToLower().Equals(correo.ToLower()));
         if(usuario != null){
             string dominio = "";
             if(environment.IsDevelopment()){
                 // dominio = HttpContext.Connection.RemoteIpAddress.MapToIPv4().ToString();
-                dominio = "http://localhost:5021/api/usuario/nuevapassword";
+                dominio = "http://192.168.1.9:5021/api/usuario/nuevapassword";
             }else{
                 dominio = "www.canchapro.com";
             }
@@ -123,7 +123,6 @@ public class UsuarioController:ControllerBase{
             +$"<a href='{dominio}'><button style='background-color:#007bff; padding: 5px; margin: 10px 0px;'>Nueva password</button></a>";
             EnviarMail("CanchaPro","nachomoyag@gmail.com", usuario.Nombre+" "+usuario.Apellido, correo, mensajeEnHtml);
             return Ok("Email de recuperacion enviado");
-
         }
         return BadRequest("Registrese por favor, no conocemos ese correo.");
     }

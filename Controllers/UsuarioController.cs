@@ -32,6 +32,16 @@ public class UsuarioController:ControllerBase{
         return 0;
     }
 
+    [HttpGet]
+    public IActionResult GetUsuario(){
+        var usuario = context.Usuario.FirstOrDefault(u => u.Id == IdUsuario);
+        if(usuario != null){
+            return Ok(usuario);
+        }
+        return BadRequest("No hay usuario logueado");
+    }
+
+    
     [AllowAnonymous]
     [HttpPost("login")]
     public IActionResult Login([FromForm]string correo,[FromForm]string password){

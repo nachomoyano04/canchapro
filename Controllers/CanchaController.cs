@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -13,8 +14,8 @@ public class CanchaController:ControllerBase{
     //http://ip:puerto/api/cancha
     [HttpGet]
     public IActionResult GetCanchas(){
-        var canchas = context.Cancha.Where(c => c.Estado == 1);
-        if(canchas != null){
+        var canchas = context.Cancha.Where(c => c.Estado == 1).Include(c => c.Tipo).ToList();
+        if(canchas.Count > 0){
             return Ok(canchas);
         }
         return BadRequest("No existen canchas");

@@ -30,7 +30,7 @@ public class TurnoController:ControllerBase{
 
     [HttpGet("pendientes")]//turnos que vienen a partir de ahora y que no han sido cancelados
     public IActionResult MisProximosTurnos(){
-        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1).ToList();
+        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1).Include(t => t.Cancha).ThenInclude(c => c.Tipo).ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }
@@ -46,8 +46,8 @@ public class TurnoController:ControllerBase{
         return NoContent();
     }
 
-    [HttpGet("dia/{idCancha}")] //traer todos los horarios que x cancha este sin turnos x día.
-    public IActionResult DisponiblesPorDia(int idCancha, [FromForm] DateTime fecha){
+    [HttpGet("dia/{idCancha}/{fecha}")] //traer todos los horarios que x cancha este sin turnos x día.
+    public IActionResult DisponiblesPorDia(int idCancha, DateTime fecha){
         var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
         if(cancha == null){ // chequeamos de que la cancha exista
             return BadRequest("No existe la cancha");
@@ -70,7 +70,17 @@ public class TurnoController:ControllerBase{
         for(int i= horarios.HoraInicio.Hour; i < horarios.HoraFin.Hour; i++){
             bool ocupado = turnosXDia.Any(t => i >= t.horaInicio && i < t.horaFin);
             if(!ocupado){
-                turnosDisponibles.Add(new {horaInicio = i, horaFin = i+1});
+                turnosDisponibles.Add(new Turno{
+                    Cancha = cancha,
+                    CanchaId = cancha.Id,
+                    Estado = 1,
+                    FechaInicio = fecha.AddHours(i),
+                    FechaFin = fecha.AddHours(i+1),
+                    Pago = null,
+                    PagoId = 0,
+                    Usuario = null,
+                    UsuarioId = IdUsuario
+                });
             }
         }
         if(turnosDisponibles.Count < 1){
@@ -125,18 +135,22 @@ public class TurnoController:ControllerBase{
     public IActionResult CancelarTurno(int idTurno){
         var turno = context.Turno.FirstOrDefault(t => t.Id == idTurno && t.UsuarioId == IdUsuario);
         if(turno != null){
-            switch(turno.Estado){
-                case 1: 
-                    turno.Estado = 3; 
-                    context.SaveChanges();
-                    return Ok("Turno cancelado");
-                case 2:
-                    return Ok("El turno no se puede cancelar porque ya fue completado...");
-                case 3:
-                    return Ok("El turno ya fue cancelado anteriormente");
+            //chequeamos que el turno se cancele como maximo 1 hora antes...
+            var minutosRestantes = turno.FechaFin.Subtract(DateTime.Now).TotalMinutes; 
+            if(minutosRestantes <= 0){
+                return BadRequest("El turno ya paso...");
             }
+            if(turno.Estado != 1){
+                return BadRequest("El turno ya fue completado o cancelado");
+            }
+            if(minutosRestantes > 60){
+                turno.Estado = 3; 
+                context.SaveChanges();
+                return Ok("Turno cancelado");
+            }
+            return BadRequest("No se puede cancelar menos de 1 hora antes...");
         }
-        return BadRequest("No encontramos el turno");
+        return BadRequest("El turno no fue encontrado");
     }
 
     public decimal CalcularMontoTotalTurno(DateTime inicio, DateTime fin, decimal porHora){

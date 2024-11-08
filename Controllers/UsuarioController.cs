@@ -78,6 +78,7 @@ public class UsuarioController:ControllerBase{
 
     [HttpPatch("avatar")]
     public IActionResult EditarAvatar([FromForm] IFormFile avatar){
+        Console.WriteLine($"avatar: {avatar}");
         var usuario = context.Usuario.FirstOrDefault(u => u.Id == IdUsuario);
         if(usuario != null && avatar != null && avatar.Length > 0){
             var fileName = $"{IdUsuario}_{Guid.NewGuid()}{Path.GetExtension(avatar.FileName)}";

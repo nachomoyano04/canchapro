@@ -48,6 +48,7 @@ public class TurnoController:ControllerBase{
 
     [HttpGet("dia/{idCancha}/{fecha}")] //traer todos los horarios que x cancha este sin turnos x día.
     public IActionResult DisponiblesPorDia(int idCancha, DateTime fecha){
+        Console.WriteLine($"Fecha {fecha}");
         var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
         if(cancha == null){ // chequeamos de que la cancha exista
             return BadRequest("No existe la cancha");

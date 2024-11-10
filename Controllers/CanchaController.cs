@@ -38,4 +38,20 @@ public class CanchaController:ControllerBase{
         return BadRequest();
     }
     
+    [AllowAnonymous]
+    [HttpPatch("{idCancha}")]
+    public IActionResult EditarCancha([FromForm] IFormFile imagen, int idCancha){
+        var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
+        if(cancha != null && imagen != null && imagen.Length > 0){
+            var fileName = $"{idCancha}_{Guid.NewGuid()}{Path.GetExtension(imagen.FileName)}";
+            var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img/cancha", fileName);
+            using(var stream = new FileStream(path, FileMode.Create)){
+                imagen.CopyTo(stream);
+            }
+            cancha.Imagen = fileName;
+            context.SaveChanges();
+            return Ok("Imagen editada");
+        }
+        return BadRequest("cancha o imagen no estan bien");
+    }
 }

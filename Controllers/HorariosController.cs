@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -6,10 +8,20 @@ using Microsoft.AspNetCore.Mvc;
 [Route("api/[controller]")]
 [Authorize]
 public class HorariosController:ControllerBase{
-    public readonly DataContext context;
-    public HorariosController(DataContext context){
+    private readonly DataContext context;
+    private readonly int IdUsuario; 
+    public HorariosController(DataContext context, IHttpContextAccessor accessor){
         this.context = context;
+        IdUsuario = Parsear(accessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);    
     }
+
+    private int Parsear(string? value){
+        if(value != null){
+            return Int32.Parse(value);
+        }
+        return 0;
+    }
+
 
     //Definir horarios para las canchas, esto luego lo va a hacer una sola alta de canchas
     //se crearia la cancha, y los horarios desde y hasta para cada dia
@@ -36,5 +48,51 @@ public class HorariosController:ControllerBase{
             return Ok("Jornada laboral diaria creada correctamente");
         }
         return BadRequest("El horario ya existe");
+    }
+
+    [HttpGet("{idCancha}")]
+    public IActionResult HorariosDesdeYHastaPorCancha(int idCancha, [FromQuery] DateTime fecha){
+        var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
+        if(cancha == null){
+            return BadRequest("La cancha no existe");
+        }
+        var horariosDisponible = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal.Equals(fecha.DayOfWeek.ToString()));
+        if(horariosDisponible == null){
+            return BadRequest("No hay horarios para este dia");
+        }
+        var horarios = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponible.HorariosId);
+        return Ok(horarios);
+    }
+
+    [HttpGet("horariosInicio/{idCancha}")]
+    public IActionResult HorariosInicio(int idCancha, [FromQuery] DateTime fecha, [FromQuery] TimeOnly horaInicio, [FromQuery] TimeOnly horaFin){
+        var turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.UsuarioId == IdUsuario && t.FechaInicio.Date == fecha.Date).ToList();
+        var horarios = new ArrayList();
+        int diferenciaHorarios = Math.Abs(horaInicio.Hour-horaFin.Hour);
+        for(int i = 0; i < diferenciaHorarios; i++){
+            bool hayTurno = turnosPorDia.Any(t => t.FechaInicio.ToString("HH:mm") == horaInicio.AddHours(i).ToString() || t.FechaInicio.ToString("HH:mm") == horaInicio.AddHours(i).AddMinutes(30).ToString()); 
+            if(!hayTurno){
+                horarios.Add(horaInicio.AddHours(i));
+                horarios.Add(horaInicio.AddHours(i).AddMinutes(30));
+            }
+        }
+        return Ok(horarios);
+    }
+
+    [HttpGet("horariosFin/{idCancha}")]
+    public IActionResult HorariosFin(int idCancha, [FromQuery] DateTime fecha, [FromQuery] TimeOnly horaInicio, [FromQuery] TimeOnly horaFin){
+        var turnosPorDia = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date).ToList();
+        var horarios = new List<TimeOnly>();
+        var diferenciaHorarios = Math.Abs(horaInicio.Hour - horaFin.Hour);
+        for(int i = 1; i < diferenciaHorarios; i++){
+            var hora = horaInicio.AddHours(i);
+            var horaYMedia = hora.AddMinutes(30);
+            bool hayTurno = turnosPorDia.Any(t => (hora > TimeOnly.FromDateTime(t.FechaInicio) && hora < TimeOnly.FromDateTime(t.FechaFin)) || (horaYMedia > TimeOnly.FromDateTime(t.FechaInicio) && horaYMedia < TimeOnly.FromDateTime(t.FechaFin)));
+            if(!hayTurno){
+                horarios.Add(hora);
+                horarios.Add(horaYMedia);
+            }
+        }
+        return Ok(horarios);
     }
 }

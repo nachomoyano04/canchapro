@@ -64,30 +64,41 @@ public class TurnoController:ControllerBase{
         }
         //paso2: buscamos los turnos que hay ese día en esa cancha
         var turnosXDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date.Equals(fecha.Date) && t.Estado != 3)
-            .Select(t => new {horaInicio = t.FechaInicio.Hour, horaFin = t.FechaFin.Hour})
+            // .Select(t => new {horaInicio = t.FechaInicio.Hour, horaFin = t.FechaFin.Hour})
             .ToList();
         //paso3: armamos una lista de horariosDisponibles
-        var turnosDisponibles = new List<object>();
-        for(int i= horarios.HoraInicio.Hour; i < horarios.HoraFin.Hour; i++){
-            bool ocupado = turnosXDia.Any(t => i >= t.horaInicio && i < t.horaFin);
-            if(!ocupado){
-                turnosDisponibles.Add(new Turno{
-                    Cancha = cancha,
-                    CanchaId = cancha.Id,
-                    Estado = 1,
-                    FechaInicio = fecha.AddHours(i),
-                    FechaFin = fecha.AddHours(i+1),
-                    Pago = null,
-                    PagoId = 0,
-                    Usuario = null,
-                    UsuarioId = IdUsuario
-                });
-            }
-        }
-        if(turnosDisponibles.Count < 1){
-            return NoContent();
-        }
-        return Ok(turnosDisponibles);
+        // var turnosDisponibles = new List<object>();
+        // for(int i = horarios.HoraInicio.Hour; i < horarios.HoraFin.Hour; i++){
+        //     bool ocupado = turnosXDia.Any(t => i >= t.horaInicio && i < t.horaFin);
+        //     if(!ocupado){
+        //         turnosDisponibles.Add(new Turno{
+        //             Cancha = cancha,
+        //             CanchaId = cancha.Id,
+        //             Estado = 1,
+        //             FechaInicio = fecha.AddHours(i),
+        //             FechaFin = fecha.AddHours(i+1),
+        //             Pago = null,
+        //             PagoId = 0,
+        //             Usuario = null,
+        //             UsuarioId = IdUsuario
+        //         });
+        //         turnosDisponibles.Add(new Turno{
+        //             Cancha = cancha,
+        //             CanchaId = cancha.Id,
+        //             Estado = 1,
+        //             FechaInicio = fecha.AddHours(i).AddMinutes(30),
+        //             FechaFin = fecha.AddHours(i+1).AddMinutes(30),
+        //             Pago = null,
+        //             PagoId = 0,
+        //             Usuario = null,
+        //             UsuarioId = IdUsuario
+        //         });
+        //     }
+        // }
+        // if(turnosDisponibles.Count < 1){
+        //     return NoContent();
+        // }
+        return Ok(turnosXDia);
     }
 
     [HttpPost("{idCancha}")]

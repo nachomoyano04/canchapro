@@ -180,7 +180,7 @@ public class UsuarioController:ControllerBase{
             configuration["TokenAuthentication:Issuer"],
             configuration["TokenAuthentication:Audience"],
             claims, 
-            expires: DateTime.Now.AddMinutes(15),
+            expires: DateTime.Now.AddMinutes(120),
             signingCredentials: credenciales
         );
         return new JwtSecurityTokenHandler().WriteToken(token);

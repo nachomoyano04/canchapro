@@ -70,7 +70,11 @@ public class HorariosController:ControllerBase{
         var horarios = new ArrayList();
         int diferenciaHorarios = Math.Abs(horaInicio.Hour-horaFin.Hour);
         for(int i = 0; i < diferenciaHorarios; i++){
-            bool hayTurno = turnosPorDia.Any(t => t.FechaInicio.ToString("HH:mm") == horaInicio.AddHours(i).ToString() || t.FechaInicio.ToString("HH:mm") == horaInicio.AddHours(i).AddMinutes(30).ToString()); 
+            // bool hayTurno = turnosPorDia.Any(t => TimeOnly.FromDateTime(t.FechaInicio) <= horaInicio.AddHours(i) && TimeOnly.FromDateTime(t.FechaInicio) >= horaInicio.AddHours(i)); 
+             bool hayTurno = turnosPorDia.Any(t => 
+            (TimeOnly.FromDateTime(t.FechaInicio) < horaInicio.AddHours(i) && TimeOnly.FromDateTime(t.FechaFin) > horaInicio.AddHours(i))
+            || (TimeOnly.FromDateTime(t.FechaInicio) < horaInicio.AddHours(i).AddMinutes(30) && TimeOnly.FromDateTime(t.FechaFin) > horaInicio.AddHours(i).AddMinutes(30))
+            );
             if(!hayTurno){
                 horarios.Add(horaInicio.AddHours(i));
                 horarios.Add(horaInicio.AddHours(i).AddMinutes(30));
@@ -87,7 +91,15 @@ public class HorariosController:ControllerBase{
         for(int i = 1; i < diferenciaHorarios; i++){
             var hora = horaInicio.AddHours(i);
             var horaYMedia = hora.AddMinutes(30);
-            bool hayTurno = turnosPorDia.Any(t => (hora > TimeOnly.FromDateTime(t.FechaInicio) && hora < TimeOnly.FromDateTime(t.FechaFin)) || (horaYMedia > TimeOnly.FromDateTime(t.FechaInicio) && horaYMedia < TimeOnly.FromDateTime(t.FechaFin)));
+            // bool hayTurno = turnosPorDia.Any(t => (hora > TimeOnly.FromDateTime(t.FechaInicio) && hora < TimeOnly.FromDateTime(t.FechaFin)) 
+            // || (horaYMedia > TimeOnly.FromDateTime(t.FechaInicio) && horaYMedia < TimeOnly.FromDateTime(t.FechaFin)));
+             bool hayTurno = turnosPorDia.Any(t => 
+            // Verifica si el intervalo propuesto se solapa con un turno existente
+            (hora > TimeOnly.FromDateTime(t.FechaInicio) && hora < TimeOnly.FromDateTime(t.FechaFin)) ||
+            (horaYMedia > TimeOnly.FromDateTime(t.FechaInicio) && horaYMedia < TimeOnly.FromDateTime(t.FechaFin)) ||
+            // Si la horaYMedia coincide exactamente con el fin de un turno, no la consideramos disponible
+            (horaYMedia == TimeOnly.FromDateTime(t.FechaFin))
+            );
             if(!hayTurno){
                 horarios.Add(hora);
                 horarios.Add(horaYMedia);

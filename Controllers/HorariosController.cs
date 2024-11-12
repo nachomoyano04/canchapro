@@ -65,8 +65,22 @@ public class HorariosController:ControllerBase{
     }
 
     [HttpGet("horariosInicio/{idCancha}")]
-    public IActionResult HorariosInicio(int idCancha, [FromQuery] DateTime fecha, [FromQuery] TimeOnly horaInicio, [FromQuery] TimeOnly horaFin){
+    public IActionResult HorariosInicio(int idCancha, [FromQuery] DateTime fecha, [FromQuery] bool editar){
         var turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.UsuarioId == IdUsuario && t.FechaInicio.Date == fecha.Date).ToList();
+        var horariosDisponibles = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == fecha.DayOfWeek.ToString());
+        if(horariosDisponibles == null){
+            return BadRequest("No hay horarios para este día");
+        }
+        var horario = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponibles.HorariosId);
+        if(horario == null){
+            return BadRequest("No hay horarios para este día");
+        }
+        var horaInicio = horario.HoraInicio;
+        var horaFin = horario.HoraFin;
+        if(editar){
+            turnosPorDia = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date && t.FechaInicio.Hour != horaInicio.Hour).ToList();
+        }
+
         var horarios = new ArrayList();
         int diferenciaHorarios = Math.Abs(horaInicio.Hour-horaFin.Hour);
         for(int i = 0; i < diferenciaHorarios; i++){
@@ -84,8 +98,19 @@ public class HorariosController:ControllerBase{
     }
 
     [HttpGet("horariosFin/{idCancha}")]
-    public IActionResult HorariosFin(int idCancha, [FromQuery] DateTime fecha, [FromQuery] TimeOnly horaInicio, [FromQuery] TimeOnly horaFin){
+    public IActionResult HorariosFin(int idCancha, [FromQuery] DateTime fecha, [FromQuery] TimeOnly horaInicio){
         var turnosPorDia = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date).ToList();
+        var horariosDisponibles = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == fecha.DayOfWeek.ToString());
+        if(horariosDisponibles == null){
+            return BadRequest("No hay horarios para este día");
+        }
+        var horario = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponibles.HorariosId);
+        if(horario == null){
+            return BadRequest("No hay horarios para este día");
+        }
+        Console.WriteLine($"hora inicio: {horaInicio}");
+        var horaFin = horario.HoraFin;
+        Console.WriteLine($"hora inicio: {horaFin}");
         var horarios = new List<TimeOnly>();
         var diferenciaHorarios = Math.Abs(horaInicio.Hour - horaFin.Hour);
         for(int i = 1; i < diferenciaHorarios; i++){

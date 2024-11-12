@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -12,6 +13,15 @@ public class TurnoController:ControllerBase{
     public TurnoController(DataContext context, IHttpContextAccessor hca){
         this.context = context;
         IdUsuario = Int32.Parse(hca.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+    }
+
+    [HttpGet]
+    public IActionResult TurnosPorUsuario(){
+        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(t => t.Tipo).ToList();
+        if(turnos.Count > 0){
+            return Ok(turnos);
+        }
+        return NoContent();
     }
 
     // turnos disponibles para x cancha
@@ -135,10 +145,29 @@ public class TurnoController:ControllerBase{
         return BadRequest("El turno no fue encontrado");
     }
 
+    [HttpPatch("comentario/{idTurno}")]
+    public IActionResult Comentario(int idTurno, [FromForm] int calificacion, [FromForm] string comentario){
+        var turno = context.Turno.FirstOrDefault(t => t.Id == idTurno && t.UsuarioId == IdUsuario && t.Estado == 2);
+        if(turno == null){
+            return BadRequest("Turno no existe o incompleto o cancelado o es de otra persona.");
+        }
+        if(!comentario.IsNullOrEmpty()){
+            turno.Comentario = comentario;
+        }
+        if(calificacion > 0 && calificacion <= 5){
+            turno.Calificacion = calificacion;
+        }
+        if(!comentario.IsNullOrEmpty() || (calificacion > 0 && calificacion <= 5)){
+            turno.FechaComentario = DateTime.Now;
+            context.SaveChanges();
+            return Ok("Comentario guardado");
+        }
+        return BadRequest("Campos requeridos");
+    }
+
     public decimal CalcularMontoTotalTurno(DateTime inicio, DateTime fin, decimal porHora){
         var minutosTurno = (int)(fin-inicio).TotalMinutes;
         var horas = minutosTurno / 60;
         return porHora * horas;
     }
-
 }

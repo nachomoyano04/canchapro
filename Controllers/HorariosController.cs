@@ -66,11 +66,14 @@ public class HorariosController:ControllerBase{
 
     [HttpGet("horariosInicio/{idCancha}")]
     public IActionResult HorariosInicio(int idCancha, [FromQuery] DateTime fecha, [FromQuery] bool editar){
-        var turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.UsuarioId == IdUsuario && t.FechaInicio.Date == fecha.Date).ToList();
+        //Consulta: para saber los turnos que tiene una cancha x día
+        var turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date).ToList();
+        //Consulta: para saber los horarios disponible que tiene la cancha x día
         var horariosDisponibles = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == fecha.DayOfWeek.ToString());
         if(horariosDisponibles == null){
             return BadRequest("No hay horarios para este día");
         }
+        //Consulta: para saber los el horario desde y hasta que tiene la cancha x día
         var horario = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponibles.HorariosId);
         if(horario == null){
             return BadRequest("No hay horarios para este día");
@@ -78,20 +81,20 @@ public class HorariosController:ControllerBase{
         var horaInicio = horario.HoraInicio;
         var horaFin = horario.HoraFin;
         if(editar){
-            turnosPorDia = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date && t.FechaInicio.Hour != horaInicio.Hour).ToList();
+            //Consulta: todos los turnos que tiene la cancha x dia pero sin tener en cuenta
+            // el horario de inicio que tiene la fecha a editar... 
+            var horaInicioEditar = fecha.Hour;
+            turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date && t.FechaInicio.Hour != horaInicioEditar).ToList();
         }
-
         var horarios = new ArrayList();
         int diferenciaHorarios = Math.Abs(horaInicio.Hour-horaFin.Hour);
         for(int i = 0; i < diferenciaHorarios; i++){
-            // bool hayTurno = turnosPorDia.Any(t => TimeOnly.FromDateTime(t.FechaInicio) <= horaInicio.AddHours(i) && TimeOnly.FromDateTime(t.FechaInicio) >= horaInicio.AddHours(i)); 
-             bool hayTurno = turnosPorDia.Any(t => 
-            (TimeOnly.FromDateTime(t.FechaInicio) < horaInicio.AddHours(i) && TimeOnly.FromDateTime(t.FechaFin) > horaInicio.AddHours(i))
-            || (TimeOnly.FromDateTime(t.FechaInicio) < horaInicio.AddHours(i).AddMinutes(30) && TimeOnly.FromDateTime(t.FechaFin) > horaInicio.AddHours(i).AddMinutes(30))
-            );
+            var horaIteracion = horaInicio.AddHours(i);
+            //Consulta: si hay algun turno con la hora de inicio desde que arranca la jornada hasta que termina...
+            bool hayTurno = turnosPorDia.Any(t => 
+            horaIteracion >= TimeOnly.FromDateTime(t.FechaInicio) && horaIteracion < TimeOnly.FromDateTime(t.FechaFin) && t.Estado == 1);
             if(!hayTurno){
                 horarios.Add(horaInicio.AddHours(i));
-                horarios.Add(horaInicio.AddHours(i).AddMinutes(30));
             }
         }
         return Ok(horarios);
@@ -99,35 +102,33 @@ public class HorariosController:ControllerBase{
 
     [HttpGet("horariosFin/{idCancha}")]
     public IActionResult HorariosFin(int idCancha, [FromQuery] DateTime fecha, [FromQuery] TimeOnly horaInicio){
-        var turnosPorDia = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date).ToList();
+        //Consulta: para saber los turnos que tiene una cancha x día
+        var turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date).ToList();
+        //Consulta: para saber los horarios disponibles que tiene una cancha x día
         var horariosDisponibles = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == fecha.DayOfWeek.ToString());
         if(horariosDisponibles == null){
             return BadRequest("No hay horarios para este día");
         }
+        //Consulta: para saber los horarios desde y hata que tiene una cancha x día
         var horario = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponibles.HorariosId);
         if(horario == null){
             return BadRequest("No hay horarios para este día");
         }
         Console.WriteLine($"hora inicio: {horaInicio}");
+        Console.WriteLine($"fecha: {fecha.ToString()}");
         var horaFin = horario.HoraFin;
         Console.WriteLine($"hora inicio: {horaFin}");
         var horarios = new List<TimeOnly>();
         var diferenciaHorarios = Math.Abs(horaInicio.Hour - horaFin.Hour);
-        for(int i = 1; i < diferenciaHorarios; i++){
-            var hora = horaInicio.AddHours(i);
-            var horaYMedia = hora.AddMinutes(30);
-            // bool hayTurno = turnosPorDia.Any(t => (hora > TimeOnly.FromDateTime(t.FechaInicio) && hora < TimeOnly.FromDateTime(t.FechaFin)) 
-            // || (horaYMedia > TimeOnly.FromDateTime(t.FechaInicio) && horaYMedia < TimeOnly.FromDateTime(t.FechaFin)));
-             bool hayTurno = turnosPorDia.Any(t => 
-            // Verifica si el intervalo propuesto se solapa con un turno existente
-            (hora > TimeOnly.FromDateTime(t.FechaInicio) && hora < TimeOnly.FromDateTime(t.FechaFin)) ||
-            (horaYMedia > TimeOnly.FromDateTime(t.FechaInicio) && horaYMedia < TimeOnly.FromDateTime(t.FechaFin)) ||
-            // Si la horaYMedia coincide exactamente con el fin de un turno, no la consideramos disponible
-            (horaYMedia == TimeOnly.FromDateTime(t.FechaFin))
-            );
+        for(int i = 1; i <= diferenciaHorarios; i++){
+            var horaFinalizacion = horaInicio.AddHours(i);
+            //Consulta: para saber los horarios desde y hata que tiene una cancha x día
+            bool hayTurno = turnosPorDia.Any(t => horaInicio <= TimeOnly.FromDateTime(t.FechaInicio) && horaFinalizacion >= TimeOnly.FromDateTime(t.FechaFin) && t.Estado == 1);
+            // bool hayTurno = turnosPorDia.Any(t =>
+            // (TimeOnly.FromDateTime(t.FechaInicio) < horaFinalizacion && TimeOnly.FromDateTime(t.FechaFin) > horaInicio) &&
+            // t.Estado == 1);
             if(!hayTurno){
-                horarios.Add(hora);
-                horarios.Add(horaYMedia);
+                horarios.Add(horaFinalizacion);
             }
         }
         return Ok(horarios);

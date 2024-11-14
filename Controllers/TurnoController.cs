@@ -49,7 +49,7 @@ public class TurnoController:ControllerBase{
 
     [HttpGet("completados")]//turnos que han sido completados
     public IActionResult TurnosPasadosCumplidos(){
-        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaFin <= DateTime.Now && t.Estado == 2).ToList();
+        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaFin <= DateTime.Now && t.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(t => t.Tipo).ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }

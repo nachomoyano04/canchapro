@@ -40,7 +40,7 @@ public class TurnoController:ControllerBase{
 
     [HttpGet("pendientes")]//turnos que vienen a partir de ahora y que no han sido cancelados
     public IActionResult MisProximosTurnos(){
-        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1).Include(t => t.Cancha).ThenInclude(c => c.Tipo).ToList();
+        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderBy(t => t.FechaInicio).ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }
@@ -93,13 +93,6 @@ public class TurnoController:ControllerBase{
             if(horariosDisponible == null){
                 return BadRequest($"La cancha {idCancha} no esta disponible ese día ");
             }
-            //chequeamos que los horarios del turno la cancha este disponible 
-            //(no por otros turnos si no por los horarios de la propia cancha)
-            var horarios = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponible.HorariosId);
-            if(!(turno.FechaInicio.Hour >= horarios.HoraInicio.Hour && turno.FechaFin.Hour <= horarios.HoraFin.Hour)){
-                return BadRequest($"Los horarios de inicio y/o fecha fin no esta disponible la cancha {idCancha}");
-            } // DESPUES CUANDO ESTEN LAS VISTAS, SACARLO, PORQUE YA LO HCAE EL METODO DISPONIBLESPORDIA
-
             pago.MontoTotal = CalcularMontoTotalTurno(turno.FechaInicio, turno.FechaFin, cancha.PrecioPorHora);
             pago.MontoReserva = pago.MontoTotal * 10 / 100;
             pago.FechaPagoReserva = DateTime.Now;
@@ -128,7 +121,7 @@ public class TurnoController:ControllerBase{
         var turno = context.Turno.FirstOrDefault(t => t.Id == idTurno && t.UsuarioId == IdUsuario);
         if(turno != null){
             //chequeamos que el turno se cancele como maximo 1 hora antes...
-            var minutosRestantes = turno.FechaFin.Subtract(DateTime.Now).TotalMinutes; 
+            var minutosRestantes = turno.FechaInicio.Subtract(DateTime.Now).TotalMinutes; 
             if(minutosRestantes <= 0){
                 return BadRequest("El turno ya paso...");
             }
@@ -140,7 +133,7 @@ public class TurnoController:ControllerBase{
                 context.SaveChanges();
                 return Ok("Turno cancelado");
             }
-            return BadRequest("No se puede cancelar menos de 1 hora antes...");
+            return Accepted();
         }
         return BadRequest("El turno no fue encontrado");
     }
@@ -163,6 +156,18 @@ public class TurnoController:ControllerBase{
             return Ok("Comentario guardado");
         }
         return BadRequest("Campos requeridos");
+    }
+
+    [HttpPatch("editar/{idTurno}")]
+    public IActionResult EditarTurno(int IdTurno, [FromForm] DateTime horaInicio, [FromForm] DateTime horaFin){
+        var turno = context.Turno.FirstOrDefault(t => t.UsuarioId == IdUsuario && t.Id == IdTurno);
+        if(turno != null){
+            turno.FechaInicio = horaInicio;
+            turno.FechaFin = horaFin;
+            context.SaveChanges();
+            return Ok("Cambios realizados");
+        }
+        return BadRequest("No encontrado");
     }
 
     public decimal CalcularMontoTotalTurno(DateTime inicio, DateTime fin, decimal porHora){

@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Asn1.Cms;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -78,7 +79,13 @@ public class HorariosController:ControllerBase{
         if(horario == null){
             return BadRequest("No hay horarios para este día");
         }
+        var horaActual = TimeOnly.FromDateTime(DateTime.Now);
         var horaInicio = horario.HoraInicio;
+        if(horario.HoraInicio <= TimeOnly.FromDateTime(DateTime.Now)){
+            if(!(horaActual.Minute == 0 && horaActual.Second == 0)){
+                horaInicio = new TimeOnly(horaActual.AddHours(1).Hour, 0, 0);
+            }
+        }
         var horaFin = horario.HoraFin;
         if(editar){
             //Consulta: todos los turnos que tiene la cancha x dia pero sin tener en cuenta
@@ -101,9 +108,9 @@ public class HorariosController:ControllerBase{
     }
 
     [HttpGet("horariosFin/{idCancha}")]
-    public IActionResult HorariosFin(int idCancha, [FromQuery] DateTime fecha, [FromQuery] TimeOnly horaInicio){
+    public IActionResult HorariosFin(int idCancha, [FromQuery] DateTime fecha, [FromQuery] TimeOnly horaInicio, [FromQuery] bool editar, [FromQuery] int idTurno){
         //Consulta: para saber los turnos que tiene una cancha x día
-        var turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date).ToList();
+        var turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date && t.Estado == 1).ToList();
         //Consulta: para saber los horarios disponibles que tiene una cancha x día
         var horariosDisponibles = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == fecha.DayOfWeek.ToString());
         if(horariosDisponibles == null){
@@ -114,19 +121,17 @@ public class HorariosController:ControllerBase{
         if(horario == null){
             return BadRequest("No hay horarios para este día");
         }
-        Console.WriteLine($"hora inicio: {horaInicio}");
-        Console.WriteLine($"fecha: {fecha.ToString()}");
         var horaFin = horario.HoraFin;
-        Console.WriteLine($"hora inicio: {horaFin}");
         var horarios = new List<TimeOnly>();
         var diferenciaHorarios = Math.Abs(horaInicio.Hour - horaFin.Hour);
         for(int i = 1; i <= diferenciaHorarios; i++){
             var horaFinalizacion = horaInicio.AddHours(i);
             //Consulta: para saber los horarios desde y hata que tiene una cancha x día
-            bool hayTurno = turnosPorDia.Any(t => horaInicio <= TimeOnly.FromDateTime(t.FechaInicio) && horaFinalizacion >= TimeOnly.FromDateTime(t.FechaFin) && t.Estado == 1);
-            // bool hayTurno = turnosPorDia.Any(t =>
-            // (TimeOnly.FromDateTime(t.FechaInicio) < horaFinalizacion && TimeOnly.FromDateTime(t.FechaFin) > horaInicio) &&
-            // t.Estado == 1);
+            // LOGICA horaInicio < turno.HoraFin && horaFin > turno.HoraInicio;
+            bool hayTurno = turnosPorDia.Any(t => horaInicio < TimeOnly.FromDateTime(t.FechaFin) && horaFinalizacion > TimeOnly.FromDateTime(t.FechaInicio) && t.Estado == 1);
+            if(editar){
+                hayTurno = turnosPorDia.Any(t => horaInicio < TimeOnly.FromDateTime(t.FechaFin) && horaFinalizacion > TimeOnly.FromDateTime(t.FechaInicio) && t.Estado == 1 && t.Id != idTurno);
+            }
             if(!hayTurno){
                 horarios.Add(horaFinalizacion);
             }

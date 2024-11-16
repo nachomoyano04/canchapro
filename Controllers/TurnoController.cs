@@ -16,8 +16,13 @@ public class TurnoController:ControllerBase{
     }
 
     [HttpGet]
-    public IActionResult TurnosPorUsuario(){
-        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(t => t.Tipo).ToList();
+    public IActionResult TurnosPorUsuario(){ 
+        // turnos completados o turno cancelados de un usuario
+        var turnos = context.Turno.
+                Where(t => t.UsuarioId == IdUsuario && t.Estado == 2 || t.Estado == 3)
+                .Include(t => t.Pago)
+                .Include(t => t.Cancha)
+                .ThenInclude(t => t.Tipo).ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }
@@ -41,6 +46,15 @@ public class TurnoController:ControllerBase{
     [HttpGet("pendientes")]//turnos que vienen a partir de ahora y que no han sido cancelados
     public IActionResult MisProximosTurnos(){
         var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderBy(t => t.FechaInicio).ToList();
+        if(turnos.Count > 0){
+            return Ok(turnos);
+        }
+        return NoContent();
+    }
+
+    [HttpGet("estado/{estado}")]
+    public IActionResult TurnosPorUsuarioYEstado(int estado){
+        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.Estado == estado).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderBy(t => t.FechaInicio).ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }
@@ -162,8 +176,13 @@ public class TurnoController:ControllerBase{
     public IActionResult EditarTurno(int IdTurno, [FromForm] DateTime horaInicio, [FromForm] DateTime horaFin){
         var turno = context.Turno.FirstOrDefault(t => t.UsuarioId == IdUsuario && t.Id == IdTurno);
         if(turno != null){
+            var pago = context.Pago.FirstOrDefault(p => p.Id == turno.PagoId);
+            var cancha = context.Cancha.FirstOrDefault(c => c.Id == turno.CanchaId);
             turno.FechaInicio = horaInicio;
             turno.FechaFin = horaFin;
+            pago.MontoTotal = CalcularMontoTotalTurno(horaInicio, horaFin, cancha.PrecioPorHora);
+            pago.MontoReserva = pago.MontoTotal * 10 / 100;
+            pago.FechaPagoReserva = DateTime.Now;
             context.SaveChanges();
             return Ok("Cambios realizados");
         }

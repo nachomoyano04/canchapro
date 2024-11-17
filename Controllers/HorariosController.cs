@@ -67,9 +67,10 @@ public class HorariosController:ControllerBase{
 
     [HttpGet("horariosInicio/{idCancha}")]
     public IActionResult HorariosInicio(int idCancha, [FromQuery] DateTime fecha, [FromQuery] bool editar){
-        if(DateTime.Now.Date != fecha.Date && !editar){
-            fecha = new DateTime(fecha.Date, TimeOnly.MinValue);
-        }
+        // if(DateTime.Now.Date != fecha.Date && !editar){
+        //     fecha = new DateTime(fecha.Date, TimeOnly.MinValue);
+        // }
+        Console.WriteLine($"Fecha {fecha}");
         //Consulta: para saber los turnos que tiene una cancha x día
         var turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date).ToList();
         //Consulta: para saber los horarios disponible que tiene la cancha x día
@@ -84,9 +85,12 @@ public class HorariosController:ControllerBase{
         }
         var horaActual = TimeOnly.FromDateTime(DateTime.Now);
         var horaInicio = horario.HoraInicio;
-        if(horario.HoraInicio <= TimeOnly.FromDateTime(DateTime.Now)){
+        //Chequeamos lo sig
+        if(horaInicio <= horaActual && fecha.Date == DateTime.Now.Date){
             if(!(horaActual.Minute == 0 && horaActual.Second == 0)){
                 horaInicio = new TimeOnly(horaActual.AddHours(1).Hour, 0, 0);
+            }else{
+                horaInicio = horaActual;
             }
         }
         var horaFin = horario.HoraFin;
@@ -94,7 +98,7 @@ public class HorariosController:ControllerBase{
             //Consulta: todos los turnos que tiene la cancha x dia pero sin tener en cuenta
             // el horario de inicio que tiene la fecha a editar... 
             var horaInicioEditar = fecha.Hour;
-            Console.WriteLine($"Hora inicio {horaInicioEditar}");
+            Console.WriteLine($"Hora inicio editar {horaInicioEditar}");
             turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date && t.FechaInicio.Hour != horaInicioEditar).ToList();
         }
         var horarios = new ArrayList();

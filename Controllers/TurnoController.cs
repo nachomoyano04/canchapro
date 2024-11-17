@@ -45,7 +45,7 @@ public class TurnoController:ControllerBase{
 
     [HttpGet("pendientes")]//turnos que vienen a partir de ahora y que no han sido cancelados
     public IActionResult MisProximosTurnos(){
-        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderBy(t => t.FechaInicio).ToList();
+        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderBy(t => t.FechaInicio).ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }

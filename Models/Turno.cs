@@ -10,7 +10,8 @@ public class Turno{
     public DateTime FechaFin {get; set;}
     public string? Comentario {get; set;}
     public int? Calificacion {get; set;}
-    public DateTime? FechaComentario{get; set;}
+    public DateTime? FechaComentario {get; set;}
+    public DateTime? FechaCancelacion {get; set;}
     public int Estado {get; set;}
     /*  Tipos de estado:
         1. Pendiente

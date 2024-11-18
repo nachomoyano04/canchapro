@@ -1,5 +1,7 @@
+using System.Collections;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -131,7 +133,7 @@ public class TurnoController:ControllerBase{
     }
 
     [HttpPatch("cancelar/{idTurno}")]
-    public IActionResult CancelarTurno(int idTurno){
+    public IActionResult CancelarTurno(int idTurno, [FromQuery] DateTime fechaCancelacion, [FromQuery] string montoReintegro){
         var turno = context.Turno.FirstOrDefault(t => t.Id == idTurno && t.UsuarioId == IdUsuario);
         if(turno != null){
             //chequeamos que el turno se cancele como maximo 1 hora antes...
@@ -143,9 +145,18 @@ public class TurnoController:ControllerBase{
                 return BadRequest("El turno ya fue completado o cancelado");
             }
             if(minutosRestantes > 60){
-                turno.Estado = 3; 
-                context.SaveChanges();
-                return Ok("Turno cancelado");
+                var pago = context.Pago.FirstOrDefault(p => p.Id == turno.PagoId);
+                if(pago != null){
+                    decimal montoDevolucion = decimal.Parse(montoReintegro);
+                    Console.WriteLine($"monto reintegro: {montoReintegro}");
+                    Console.WriteLine($"monto reintegro parseado: {montoDevolucion}");
+                    turno.FechaCancelacion = fechaCancelacion;
+                    pago.MontoReintegroTurnoCancelado = montoDevolucion;
+                    turno.Estado = 3; 
+                    context.SaveChanges();
+                    return Ok("Turno cancelado");
+                }
+                return BadRequest("No existe el pago");
             }
             return Accepted();
         }
@@ -187,6 +198,29 @@ public class TurnoController:ControllerBase{
             return Ok("Cambios realizados");
         }
         return BadRequest("No encontrado");
+    }
+
+    [HttpGet("cancelar/{idTurno}")]
+    public IActionResult GetPoliticasDeCancelacion(int idTurno, [FromQuery] DateTime fechaCancelacion){
+        var turno = context.Turno.Where(t => t.Id == idTurno && t.UsuarioId == IdUsuario && t.Estado == 1).Include(t => t.Pago).First();
+        if(turno != null){
+            var horasRestantesAlTurno = turno.FechaInicio - fechaCancelacion.AddMinutes(-2); //Le sumamos 2 minutos de tolerancia
+            Console.WriteLine($"Horas restantes al turno: {horasRestantesAlTurno}");
+            decimal montoDevolucion = 0;
+            if(horasRestantesAlTurno.TotalMinutes >= 1440){
+                montoDevolucion = turno.Pago.MontoReserva;
+            }else if(horasRestantesAlTurno.TotalMinutes >= 360){
+                montoDevolucion = turno.Pago.MontoReserva * 50 / 100;
+            }
+            string mensaje = "Politicas de cancelación de turnos:" +
+                                    "\n-Cancelando 24 horas antes o mas le devolvemos el total de su dinero" +
+                                    "\n-Cancelando 6 horas antes o mas le devolvemos el 50% de su dinero" +
+                                    "\n-Cancelando faltando menos de 6 horas lamentamos informarle que no se hara devolución de su dinero" +
+                                    $"\n Lo que usted recibiría es ${montoDevolucion} porque faltan {Math.Floor(horasRestantesAlTurno.TotalDays)} días " +
+                                    $"{horasRestantesAlTurno.Hours} horas y {horasRestantesAlTurno.Minutes} minutos";
+            return Ok(new ArrayList{mensaje, montoDevolucion+""});
+        }
+        return BadRequest("No se encontró el turno");
     }
 
     public decimal CalcularMontoTotalTurno(DateTime inicio, DateTime fin, decimal porHora){

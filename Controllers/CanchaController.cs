@@ -54,4 +54,20 @@ public class CanchaController:ControllerBase{
         }
         return BadRequest("cancha o imagen no estan bien");
     }
+
+    [HttpGet("porcentaje/{idCancha}")]
+    public IActionResult PorcentajeCalificacionCancha(int idCancha){
+        var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
+        if(cancha != null){
+            var turnosConCalificacion = context.Turno.Where(t => t.CanchaId == idCancha && t.Calificacion != null).ToList();   
+            var cantidadCalificaciones = turnosConCalificacion.Count;
+            int total = 0;
+            foreach(var tcc in turnosConCalificacion){
+                total += (int) tcc.Calificacion;
+            }
+            var porcentaje = (double) total / cantidadCalificaciones;
+            return Ok(String.Format("{0:0.0}", porcentaje));
+        }
+        return BadRequest("No se encontró la cancha");
+    }
 }

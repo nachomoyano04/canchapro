@@ -13,8 +13,9 @@ public class Pago{
     public decimal? MontoReintegroTurnoCancelado {get; set;}
     public int Estado {get; set;}
     /*tipos de estado del pago:
-        1- Pendiente
-        2-Completado
-        3-Rechazado
-        4-Cancelado*/
+        1-Reserva-Pendiente
+        2-Reservado
+        3-Completado
+        4-Rechazado
+        5-Cancelado*/
 }

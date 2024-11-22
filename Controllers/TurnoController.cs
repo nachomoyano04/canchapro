@@ -45,9 +45,9 @@ public class TurnoController:ControllerBase{
         return BadRequest("La cancha no existe");
     }
 
-    [HttpGet("pendientes")]//turnos que vienen a partir de ahora y que no han sido cancelados
+    [HttpGet("pendientes")]//turnos que vienen a partir de ahora y que no han sido cancelados, y que el pago de la reserva se ha completado  (estado = 2)
     public IActionResult MisProximosTurnos(){
-        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderBy(t => t.FechaInicio).ToList();
+        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1 && t.Pago.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderBy(t => t.FechaInicio).ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }
@@ -126,8 +126,9 @@ public class TurnoController:ControllerBase{
             turno.Calificacion = null;
             turno.FechaComentario = null;
             context.Turno.Add(turno);
-            context.SaveChanges();
-            return Ok($"Total de la reserva del pago: ${pago.MontoReserva}");
+            context.SaveChanges(); 
+            //El pago de la reserva esta en 1. Lo que significa que no se confirma aún...
+            return Ok($"CONFIRMAREMOS SU RESERVA POR ${pago.MontoReserva} EN BREVE...");
         }
         return BadRequest("La cancha no existe.");
     }

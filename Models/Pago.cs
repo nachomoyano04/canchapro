@@ -11,6 +11,7 @@ public class Pago{
     alguna billetera virtual.*/
     public string? ComprobanteReserva{get; set;}
     public decimal? MontoReintegroTurnoCancelado {get; set;}
+    public decimal? Creditos {get; set;}
     public int Estado {get; set;}
     /*tipos de estado del pago:
         1-Reserva-Pendiente

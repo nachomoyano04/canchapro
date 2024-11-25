@@ -192,11 +192,22 @@ public class TurnoController:ControllerBase{
             var cancha = context.Cancha.FirstOrDefault(c => c.Id == turno.CanchaId);
             turno.FechaInicio = horaInicio;
             turno.FechaFin = horaFin;
+            var montoReservaPagado = pago.MontoReserva;
             pago.MontoTotal = CalcularMontoTotalTurno(horaInicio, horaFin, cancha.PrecioPorHora);
             pago.MontoReserva = pago.MontoTotal * 10 / 100;
             pago.FechaPagoReserva = DateTime.Now;
-            context.SaveChanges();
-            return Ok("Cambios realizados");
+            if(pago.MontoReserva > montoReservaPagado){
+                context.SaveChanges();
+                return Ok($"Usted pagó ${montoReservaPagado} ahora como el total de "+
+                $"la reserva es de ${pago.MontoReserva}, debe abonar el resto que es: ${pago.MontoReserva-montoReservaPagado}");
+            }else if(pago.MontoReserva == montoReservaPagado){
+                context.SaveChanges();
+                return Ok($"Su turno fue cambiado");
+            }else{
+                pago.Creditos = montoReservaPagado-pago.MontoReserva;
+                context.SaveChanges();
+                return Ok($"Usted tiene ${pago.Creditos} a favor para el pago total del turno...");
+            }
         }
         return BadRequest("No encontrado");
     }

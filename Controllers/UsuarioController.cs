@@ -122,8 +122,9 @@ public class UsuarioController:ControllerBase{
         if(usuario != null){
             string dominio = "";
             if(environment.IsDevelopment()){
-                // dominio = HttpContext.Connection.RemoteIpAddress.MapToIPv4().ToString();
-                dominio = "http://192.168.1.9:5021/api/usuario/nuevapassword";
+                // dominio = "http://" + HttpContext.Connection.RemoteIpAddress.MapToIPv4().ToString();
+                // dominio += ":5021/api/usuario/nuevapassword";
+                dominio = "http://192.168.1.7:5021/api/usuario/nuevapassword";
             }else{
                 dominio = "www.canchapro.com";
             }

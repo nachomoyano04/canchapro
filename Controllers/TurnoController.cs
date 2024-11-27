@@ -56,7 +56,7 @@ public class TurnoController:ControllerBase{
 
     [HttpGet("estado/{estado}")]
     public IActionResult TurnosPorUsuarioYEstado(int estado){
-        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.Estado == estado).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderBy(t => t.FechaInicio).ToList();
+        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.Estado == estado).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderByDescending(t => t.FechaCancelacion).ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }
@@ -109,32 +109,46 @@ public class TurnoController:ControllerBase{
             if(horariosDisponible == null){
                 return BadRequest($"La cancha {idCancha} no esta disponible ese día ");
             }
-            pago.MontoTotal = CalcularMontoTotalTurno(turno.FechaInicio, turno.FechaFin, cancha.PrecioPorHora);
-            pago.MontoReserva = pago.MontoTotal * 10 / 100;
-            pago.FechaPagoReserva = DateTime.Now;
-            pago.FechaPagoTotal = null;
-            pago.ComprobanteReserva = ""; //luego pondriamos la ruta al pdf guardado localmente...
-            pago.Estado = 1; // ponemos el estado del pago como "pendiente" porque falta el resto...
-            context.Pago.Add(pago);
-            context.SaveChanges();
-            //una vez cargado el pago creamos el turno
-            turno.CanchaId = idCancha;
-            turno.PagoId = pago.Id;
-            turno.UsuarioId = IdUsuario; 
-            turno.Estado = 1;
-            turno.Comentario = null;
-            turno.Calificacion = null;
-            turno.FechaComentario = null;
-            context.Turno.Add(turno);
-            context.SaveChanges(); 
-            //El pago de la reserva esta en 1. Lo que significa que no se confirma aún...
-            return Ok($"CONFIRMAREMOS SU RESERVA POR ${pago.MontoReserva} EN BREVE...");
+            using(var transaccion = context.Database.BeginTransaction()){
+                try{
+                    bool existeTurno = context.Turno.Any(t => t.CanchaId == idCancha && t.FechaInicio == turno.FechaInicio 
+                                        && t.FechaFin == turno.FechaFin && (t.Estado == 1 || t.Estado == 2));
+                    if(!existeTurno){
+                        pago.MontoTotal = CalcularMontoTotalTurno(turno.FechaInicio, turno.FechaFin, cancha.PrecioPorHora);
+                        pago.MontoReserva = pago.MontoTotal * 10 / 100;
+                        pago.FechaPagoReserva = DateTime.Now;
+                        pago.FechaPagoTotal = null;
+                        pago.ComprobanteReserva = ""; //luego pondriamos la ruta al pdf guardado localmente...
+                        pago.Estado = 1; // ponemos el estado del pago como "pendiente" porque falta el resto...
+                        context.Pago.Add(pago);
+                        context.SaveChanges();
+                        //una vez cargado el pago creamos el turno
+                        turno.CanchaId = idCancha;
+                        turno.PagoId = pago.Id;
+                        turno.UsuarioId = IdUsuario; 
+                        turno.Estado = 1;
+                        turno.Comentario = null;
+                        turno.Calificacion = null;
+                        turno.FechaComentario = null;
+                        context.Turno.Add(turno);
+                        context.SaveChanges(); 
+                        transaccion.Commit();
+                        //El pago de la reserva esta en 1. Lo que significa que no se confirma aún...
+                        return Ok($"CONFIRMAREMOS SU RESERVA POR ${pago.MontoReserva} EN BREVE...");
+                    }else{
+                        return Conflict();
+                    }
+                }catch(System.Exception){
+                    transaccion.Rollback();
+                    return Conflict();
+                }
+            }
         }
         return BadRequest("La cancha no existe.");
     }
 
     [HttpPatch("cancelar/{idTurno}")]
-    public IActionResult CancelarTurno(int idTurno, [FromQuery] DateTime fechaCancelacion, [FromQuery] string montoReintegro){
+    public IActionResult CancelarTurno(int idTurno, [FromQuery] string montoReintegro){
         var turno = context.Turno.FirstOrDefault(t => t.Id == idTurno && t.UsuarioId == IdUsuario);
         if(turno != null){
             //chequeamos que el turno se cancele como maximo 1 hora antes...
@@ -151,7 +165,7 @@ public class TurnoController:ControllerBase{
                     decimal montoDevolucion = decimal.Parse(montoReintegro);
                     Console.WriteLine($"monto reintegro: {montoReintegro}");
                     Console.WriteLine($"monto reintegro parseado: {montoDevolucion}");
-                    turno.FechaCancelacion = fechaCancelacion;
+                    turno.FechaCancelacion = DateTime.Now;
                     pago.MontoReintegroTurnoCancelado = montoDevolucion;
                     turno.Estado = 3; 
                     context.SaveChanges();
@@ -188,35 +202,41 @@ public class TurnoController:ControllerBase{
     public IActionResult EditarTurno(int IdTurno, [FromForm] DateTime horaInicio, [FromForm] DateTime horaFin){
         var turno = context.Turno.FirstOrDefault(t => t.UsuarioId == IdUsuario && t.Id == IdTurno);
         if(turno != null){
-            var pago = context.Pago.FirstOrDefault(p => p.Id == turno.PagoId);
-            var cancha = context.Cancha.FirstOrDefault(c => c.Id == turno.CanchaId);
-            turno.FechaInicio = horaInicio;
-            turno.FechaFin = horaFin;
-            var montoReservaPagado = pago.MontoReserva;
-            pago.MontoTotal = CalcularMontoTotalTurno(horaInicio, horaFin, cancha.PrecioPorHora);
-            pago.MontoReserva = pago.MontoTotal * 10 / 100;
-            pago.FechaPagoReserva = DateTime.Now;
-            if(pago.MontoReserva > montoReservaPagado){
-                context.SaveChanges();
-                return Ok($"Usted pagó ${montoReservaPagado} ahora como el total de "+
-                $"la reserva es de ${pago.MontoReserva}, debe abonar el resto que es: ${pago.MontoReserva-montoReservaPagado}");
-            }else if(pago.MontoReserva == montoReservaPagado){
-                context.SaveChanges();
-                return Ok($"Su turno fue cambiado");
+            bool existeTurno = context.Turno.Any(t => t.CanchaId == turno.CanchaId && t.FechaInicio == turno.FechaInicio 
+                                && t.FechaFin == turno.FechaFin && (t.Estado == 1 || t.Estado == 2));
+            if(!existeTurno){
+                var pago = context.Pago.FirstOrDefault(p => p.Id == turno.PagoId);
+                var cancha = context.Cancha.FirstOrDefault(c => c.Id == turno.CanchaId);
+                turno.FechaInicio = horaInicio;
+                turno.FechaFin = horaFin;
+                var montoReservaPagado = pago.MontoReserva;
+                pago.MontoTotal = CalcularMontoTotalTurno(horaInicio, horaFin, cancha.PrecioPorHora);
+                pago.MontoReserva = pago.MontoTotal * 10 / 100;
+                pago.FechaPagoReserva = DateTime.Now;
+                if(pago.MontoReserva > montoReservaPagado){
+                    context.SaveChanges();
+                    return Ok($"Usted pagó ${montoReservaPagado} ahora como el total de "+
+                    $"la reserva es de ${pago.MontoReserva}, debe abonar el resto que es: ${pago.MontoReserva-montoReservaPagado}");
+                }else if(pago.MontoReserva == montoReservaPagado){
+                    context.SaveChanges();
+                    return Ok($"Su turno fue cambiado");
+                }else{
+                    pago.Creditos = montoReservaPagado-pago.MontoReserva;
+                    context.SaveChanges();
+                    return Ok($"Usted tiene ${pago.Creditos} a favor para el pago total del turno...");
+                }
             }else{
-                pago.Creditos = montoReservaPagado-pago.MontoReserva;
-                context.SaveChanges();
-                return Ok($"Usted tiene ${pago.Creditos} a favor para el pago total del turno...");
+                return Conflict();
             }
         }
         return BadRequest("No encontrado");
     }
 
     [HttpGet("cancelar/{idTurno}")]
-    public IActionResult GetPoliticasDeCancelacion(int idTurno, [FromQuery] DateTime fechaCancelacion){
+    public IActionResult GetPoliticasDeCancelacion(int idTurno){
         var turno = context.Turno.Where(t => t.Id == idTurno && t.UsuarioId == IdUsuario && t.Estado == 1).Include(t => t.Pago).First();
         if(turno != null){
-            var horasRestantesAlTurno = turno.FechaInicio - fechaCancelacion.AddMinutes(-2); //Le sumamos 2 minutos de tolerancia
+            var horasRestantesAlTurno = turno.FechaInicio - DateTime.Now.AddMinutes(-2); //Le sumamos 2 minutos de tolerancia
             Console.WriteLine($"Horas restantes al turno: {horasRestantesAlTurno}");
             decimal montoDevolucion = 0;
             if(horasRestantesAlTurno.TotalMinutes >= 1440){

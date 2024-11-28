@@ -85,6 +85,10 @@ public class HorariosController:ControllerBase{
         }
         var horaActual = TimeOnly.FromDateTime(DateTime.Now);
         var horaInicio = horario.HoraInicio;
+        //si la hora actual es mayor a la hora de fin del ultimo turno disponible para la cancha, devolvemos vacio directamente
+        if(horaActual > horario.HoraFin.AddHours(-1) && fecha.Date == DateTime.Now.Date){
+            return Ok(new ArrayList());
+        }
         //Chequeamos lo sig
         if(horaInicio <= horaActual && fecha.Date == DateTime.Now.Date){
             if(!(horaActual.Minute == 0 && horaActual.Second == 0)){

@@ -163,8 +163,6 @@ public class TurnoController:ControllerBase{
                 var pago = context.Pago.FirstOrDefault(p => p.Id == turno.PagoId);
                 if(pago != null){
                     decimal montoDevolucion = decimal.Parse(montoReintegro);
-                    Console.WriteLine($"monto reintegro: {montoReintegro}");
-                    Console.WriteLine($"monto reintegro parseado: {montoDevolucion}");
                     turno.FechaCancelacion = DateTime.Now;
                     pago.MontoReintegroTurnoCancelado = montoDevolucion;
                     turno.Estado = 3; 

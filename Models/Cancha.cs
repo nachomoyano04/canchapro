@@ -11,5 +11,6 @@ public class Cancha{
     //1 disponible
     //2 en refacccion
     //3 fuera de servicio
+    public decimal PorcentajeCalificacion{get; set;} = 5;
     public int Estado {get; set;}
 }

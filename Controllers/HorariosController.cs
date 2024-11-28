@@ -67,10 +67,6 @@ public class HorariosController:ControllerBase{
 
     [HttpGet("horariosInicio/{idCancha}")]
     public IActionResult HorariosInicio(int idCancha, [FromQuery] DateTime fecha, [FromQuery] bool editar){
-        // if(DateTime.Now.Date != fecha.Date && !editar){
-        //     fecha = new DateTime(fecha.Date, TimeOnly.MinValue);
-        // }
-        Console.WriteLine($"Fecha {fecha}");
         //Consulta: para saber los turnos que tiene una cancha x día
         var turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date).ToList();
         //Consulta: para saber los horarios disponible que tiene la cancha x día
@@ -111,7 +107,7 @@ public class HorariosController:ControllerBase{
             var horaIteracion = horaInicio.AddHours(i);
             //Consulta: si hay algun turno con la hora de inicio desde que arranca la jornada hasta que termina...
             bool hayTurno = turnosPorDia.Any(t => 
-            horaIteracion >= TimeOnly.FromDateTime(t.FechaInicio) && horaIteracion < TimeOnly.FromDateTime(t.FechaFin) && t.Estado == 1);
+            horaIteracion >= TimeOnly.FromDateTime(t.FechaInicio) && horaIteracion < TimeOnly.FromDateTime(t.FechaFin) && (t.Estado == 1 || t.Estado == 2));
             if(!hayTurno){
                 horarios.Add(horaInicio.AddHours(i));
             }

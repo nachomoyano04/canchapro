@@ -187,6 +187,19 @@ public class TurnoController:ControllerBase{
         }
         if(calificacion > 0 && calificacion <= 5){
             turno.Calificacion = calificacion;
+            //si hay una calificacion, cambiamos el porcentaje de calificacion de la cancha...
+            var cancha = context.Cancha.FirstOrDefault(c => c.Id == turno.CanchaId);
+            if(cancha != null){
+                var turnosConCalificacion = context.Turno.Where(t => t.CanchaId == turno.CanchaId && t.Calificacion != null).ToList();
+                int cantidadTurnos = turnosConCalificacion.Count();
+                int total = 0;
+                turnosConCalificacion.ForEach(t => total += (int) t.Calificacion);
+                Console.WriteLine($"Cantidad turnos: {cantidadTurnos}");
+                Console.WriteLine($"Total calificaciones: {total}");
+                var PorcentajeCalificacion = (total + calificacion) / (cantidadTurnos+1);
+                cancha.PorcentajeCalificacion = PorcentajeCalificacion;
+                Console.WriteLine($"PorcentajeCalificacion: {PorcentajeCalificacion}");
+            }
         }
         if(!comentario.IsNullOrEmpty() || (calificacion > 0 && calificacion <= 5)){
             turno.FechaComentario = DateTime.Now;
@@ -200,8 +213,8 @@ public class TurnoController:ControllerBase{
     public IActionResult EditarTurno(int IdTurno, [FromForm] DateTime horaInicio, [FromForm] DateTime horaFin){
         var turno = context.Turno.FirstOrDefault(t => t.UsuarioId == IdUsuario && t.Id == IdTurno);
         if(turno != null){
-            bool existeTurno = context.Turno.Any(t => t.CanchaId == turno.CanchaId && t.FechaInicio == turno.FechaInicio 
-                                && t.FechaFin == turno.FechaFin && (t.Estado == 1 || t.Estado == 2));
+            bool existeTurno = context.Turno.Any(t => t.CanchaId == turno.CanchaId && t.FechaInicio == horaInicio 
+                                && t.FechaFin == horaFin && (t.Estado == 1 || t.Estado == 2));
             if(!existeTurno){
                 var pago = context.Pago.FirstOrDefault(p => p.Id == turno.PagoId);
                 var cancha = context.Cancha.FirstOrDefault(c => c.Id == turno.CanchaId);

@@ -177,7 +177,7 @@ public class TurnoController:ControllerBase{
     }
 
     [HttpPatch("comentario/{idTurno}")]
-    public IActionResult Comentario(int idTurno, [FromForm] int calificacion, [FromForm] string comentario){
+    public IActionResult Comentario(int idTurno, [FromForm] int calificacion, [FromForm] string? comentario){
         var turno = context.Turno.FirstOrDefault(t => t.Id == idTurno && t.UsuarioId == IdUsuario && t.Estado == 2);
         if(turno == null){
             return BadRequest("Turno no existe o incompleto o cancelado o es de otra persona.");
@@ -186,6 +186,10 @@ public class TurnoController:ControllerBase{
             turno.Comentario = comentario;
         }
         if(calificacion > 0 && calificacion <= 5){
+            bool teniaCalificacion = false;
+            if(turno.Calificacion != null){
+                teniaCalificacion = true;
+            }
             turno.Calificacion = calificacion;
             //si hay una calificacion, cambiamos el porcentaje de calificacion de la cancha...
             var cancha = context.Cancha.FirstOrDefault(c => c.Id == turno.CanchaId);
@@ -194,11 +198,13 @@ public class TurnoController:ControllerBase{
                 int cantidadTurnos = turnosConCalificacion.Count();
                 int total = 0;
                 turnosConCalificacion.ForEach(t => total += (int) t.Calificacion);
-                Console.WriteLine($"Cantidad turnos: {cantidadTurnos}");
-                Console.WriteLine($"Total calificaciones: {total}");
-                var PorcentajeCalificacion = (total + calificacion) / (cantidadTurnos+1);
+                var PorcentajeCalificacion = Decimal.MinValue;
+                if(!teniaCalificacion){
+                    PorcentajeCalificacion = (decimal)(total + calificacion) / (cantidadTurnos+1);
+                }else{
+                    PorcentajeCalificacion = (decimal)(total - turno.Calificacion + calificacion) / cantidadTurnos;
+                }
                 cancha.PorcentajeCalificacion = PorcentajeCalificacion;
-                Console.WriteLine($"PorcentajeCalificacion: {PorcentajeCalificacion}");
             }
         }
         if(!comentario.IsNullOrEmpty() || (calificacion > 0 && calificacion <= 5)){

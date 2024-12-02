@@ -11,6 +11,4 @@ public class DataContext:DbContext{
     public DbSet<Turno> Turno {get; set;}
     public DbSet<Pago> Pago {get; set;}
     public DbSet<Horarios> Horarios {get; set;}
-    public DbSet<HorariosDisponible> HorariosDisponible {get; set;}
-
 }

@@ -72,28 +72,6 @@ public class TurnoController:ControllerBase{
         return NoContent();
     }
 
-    [HttpGet("dia/{idCancha}/{fecha}")] //traer todos los horarios que x cancha este sin turnos x día.
-    public IActionResult DisponiblesPorDia(int idCancha, DateTime fecha){
-        Console.WriteLine($"Fecha {fecha}");
-        var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
-        if(cancha == null){ // chequeamos de que la cancha exista
-            return BadRequest("No existe la cancha");
-        }
-        //paso1: traer los horarios disponibles que tiene esa cancha ese día
-        var horariosDisponible = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == fecha.DayOfWeek.ToString());
-        if(horariosDisponible == null){
-            return BadRequest($"No existen horarios para la cancha {cancha.Id} en la fecha {fecha.Date.ToShortDateString()}.");
-        }
-        var horarios = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponible.HorariosId);
-        if(horarios == null){
-            return BadRequest("El horario no existe");
-        }
-        //paso2: buscamos los turnos que hay ese día en esa cancha
-        var turnosXDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date.Equals(fecha.Date) && t.Estado != 3)
-            .ToList();
-        return Ok(turnosXDia);
-    }
-
     [HttpPost("{idCancha}")]
     public IActionResult NuevoTurno(int idCancha, [FromForm] Turno turno, [FromForm] Pago pago){
         var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
@@ -105,8 +83,8 @@ public class TurnoController:ControllerBase{
             if(turno.FechaInicio.Date.ToString() != turno.FechaFin.Date.ToString()){
                 return BadRequest("Los horarios de inicio y fin deben ser el mismo dia");
             }
-            var horariosDisponible = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == diaSemanal);
-            if(horariosDisponible == null){
+            var horarios = context.Horarios.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == diaSemanal);
+            if(horarios == null){
                 return BadRequest($"La cancha {idCancha} no esta disponible ese día ");
             }
             using(var transaccion = context.Database.BeginTransaction()){

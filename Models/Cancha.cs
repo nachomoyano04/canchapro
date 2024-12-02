@@ -8,9 +8,9 @@ public class Cancha{
     public string? Imagen {get; set;}
     public decimal PrecioPorHora {get; set;}
     public string Descripcion {get; set;}
+    public decimal PorcentajeCalificacion{get; set;} = 5;
+    public int Estado {get; set;}
     //1 disponible
     //2 en refacccion
     //3 fuera de servicio
-    public decimal PorcentajeCalificacion{get; set;} = 5;
-    public int Estado {get; set;}
 }

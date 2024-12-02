@@ -28,11 +28,11 @@ public class HorariosController:ControllerBase{
     //se crearia la cancha, y los horarios desde y hasta para cada dia
     [AllowAnonymous]
     [HttpPost("{idCancha}")]
-    public IActionResult DefinirHorariosCanchas(int idCancha, [FromForm] HorariosDisponible horariosDisponible){
+    public IActionResult DefinirHorariosCanchas(int idCancha, [FromForm] Horarios horarios){
         var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
         if(cancha != null){
-            horariosDisponible.CanchaId = idCancha;
-            context.HorariosDisponible.Add(horariosDisponible);
+            horarios.CanchaId = idCancha;
+            context.Horarios.Add(horarios);
             context.SaveChanges();
             return Ok("Horarios definidos correctamente");
         }
@@ -57,11 +57,10 @@ public class HorariosController:ControllerBase{
         if(cancha == null){
             return BadRequest("La cancha no existe");
         }
-        var horariosDisponible = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal.Equals(fecha.DayOfWeek.ToString()));
-        if(horariosDisponible == null){
+        var horarios = context.Horarios.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal.Equals(fecha.DayOfWeek.ToString()));
+        if(horarios == null){
             return BadRequest("No hay horarios para este dia");
         }
-        var horarios = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponible.HorariosId);
         return Ok(horarios);
     }
 
@@ -70,12 +69,7 @@ public class HorariosController:ControllerBase{
         //Consulta: para saber los turnos que tiene una cancha x día
         var turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date).ToList();
         //Consulta: para saber los horarios disponible que tiene la cancha x día
-        var horariosDisponibles = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == fecha.DayOfWeek.ToString());
-        if(horariosDisponibles == null){
-            return BadRequest("No hay horarios para este día");
-        }
-        //Consulta: para saber los el horario desde y hasta que tiene la cancha x día
-        var horario = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponibles.HorariosId);
+        var horario = context.Horarios.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == fecha.DayOfWeek.ToString());
         if(horario == null){
             return BadRequest("No hay horarios para este día");
         }
@@ -120,12 +114,7 @@ public class HorariosController:ControllerBase{
         //Consulta: para saber los turnos que tiene una cancha x día
         var turnosPorDia = context.Turno.Where(t => t.CanchaId == idCancha && t.FechaInicio.Date == fecha.Date && t.Estado == 1).ToList();
         //Consulta: para saber los horarios disponibles que tiene una cancha x día
-        var horariosDisponibles = context.HorariosDisponible.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == fecha.DayOfWeek.ToString());
-        if(horariosDisponibles == null){
-            return BadRequest("No hay horarios para este día");
-        }
-        //Consulta: para saber los horarios desde y hata que tiene una cancha x día
-        var horario = context.Horarios.FirstOrDefault(h => h.Id == horariosDisponibles.HorariosId);
+        var horario = context.Horarios.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal == fecha.DayOfWeek.ToString());
         if(horario == null){
             return BadRequest("No hay horarios para este día");
         }

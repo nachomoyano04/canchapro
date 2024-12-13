@@ -12,9 +12,9 @@ public class CanchaController:ControllerBase{
     }
 
     //http://ip:puerto/api/cancha
-    [HttpGet]
-    public IActionResult GetCanchas(){
-        var canchas = context.Cancha.Where(c => c.Estado == 1).Include(c => c.Tipo).ToList();
+    [HttpGet("{estado}")]
+    public IActionResult GetCanchas(int estado){
+        var canchas = context.Cancha.Where(c => c.Estado == estado).Include(c => c.Tipo).ToList();
         if(canchas.Count > 0){
             return Ok(canchas);
         }

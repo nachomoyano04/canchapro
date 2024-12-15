@@ -1,3 +1,4 @@
+using System.Collections;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,8 +18,9 @@ public class CanchaController:ControllerBase{
         var canchas = context.Cancha.Where(c => c.Estado == estado).Include(c => c.Tipo).ToList();
         if(canchas.Count > 0){
             return Ok(canchas);
+        }else{
+            return Ok(new ArrayList());
         }
-        return BadRequest("No existen canchas");
     }
 
     //En un principio allowanonymous, despues solo los del rol administrador...

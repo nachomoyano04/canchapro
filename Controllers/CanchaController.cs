@@ -12,15 +12,20 @@ public class CanchaController:ControllerBase{
         this.context = context;
     }
 
+    [HttpGet("unica/{id}")]
+    public IActionResult GetCancha(int id){
+        var cancha = context.Cancha.FirstOrDefault(c => c.Id == id);
+        if(cancha != null){
+            return Ok(cancha);
+        }
+        return BadRequest("No se encontró la cancha...");
+    }
+
     //http://ip:puerto/api/cancha
     [HttpGet("{estado}")]
     public IActionResult GetCanchas(int estado){
         var canchas = context.Cancha.Where(c => c.Estado == estado).Include(c => c.Tipo).ToList();
-        if(canchas.Count > 0){
-            return Ok(canchas);
-        }else{
-            return Ok(new ArrayList());
-        }
+        return Ok(canchas);
     }
 
     //En un principio allowanonymous, despues solo los del rol administrador...

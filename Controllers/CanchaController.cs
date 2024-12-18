@@ -14,6 +14,7 @@ public class CanchaController:ControllerBase{
 
     [HttpGet("unica/{id}")]
     public IActionResult GetCancha(int id){
+        // var cancha = context.Cancha.Include(c => c.Tipo).FirstOrDefault(c => c.Id == id);
         var cancha = context.Cancha.FirstOrDefault(c => c.Id == id);
         if(cancha != null){
             return Ok(cancha);
@@ -24,7 +25,8 @@ public class CanchaController:ControllerBase{
     //http://ip:puerto/api/cancha
     [HttpGet("{estado}")]
     public IActionResult GetCanchas(int estado){
-        var canchas = context.Cancha.Where(c => c.Estado == estado).Include(c => c.Tipo).ToList();
+        // var canchas = context.Cancha.Where(c => c.Estado == estado).Include(c => c.Tipo).ToList();
+        var canchas = context.Cancha.Where(c => c.Estado == estado).ToList();
         return Ok(canchas);
     }
 
@@ -45,20 +47,27 @@ public class CanchaController:ControllerBase{
         return BadRequest();
     }
     
-    [AllowAnonymous]
-    [HttpPatch("{idCancha}")]
-    public IActionResult EditarCancha([FromForm] IFormFile imagen, int idCancha){
-        var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
-        if(cancha != null && imagen != null && imagen.Length > 0){
-            var fileName = $"{idCancha}_{Guid.NewGuid()}{Path.GetExtension(imagen.FileName)}";
-            var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img/cancha", fileName);
-            using(var stream = new FileStream(path, FileMode.Create)){
-                imagen.CopyTo(stream);
+    [HttpPatch]
+    public IActionResult EditarCancha([FromForm] Cancha cancha, [FromForm] IFormFile? imagen){
+        var court = context.Cancha.FirstOrDefault(c => c.Id == cancha.Id);
+        if(court != null){
+            court.Nombre = cancha.Nombre;
+            court.CapacidadTotal = cancha.CapacidadTotal;
+            court.TipoDePiso = cancha.TipoDePiso;
+            if(imagen != null && imagen.Length > 0){
+                var fileName = $"{cancha.Id}_{Guid.NewGuid()}{Path.GetExtension(imagen.FileName)}";
+                var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img/cancha", fileName);
+                using(var stream = new FileStream(path, FileMode.Create)){
+                    imagen.CopyTo(stream);
+                }
+                court.Imagen = fileName;
             }
-            cancha.Imagen = fileName;
+            court.PrecioPorHora = cancha.PrecioPorHora;
+            court.Descripcion = cancha.Descripcion;
+            court.Estado = cancha.Estado;
             context.SaveChanges();
-            return Ok("Imagen editada");
+            return Ok("Cambios realizados");
         }
-        return BadRequest("cancha o imagen no estan bien");
+        return BadRequest("La cancha no se encontró");
     }
 }

@@ -24,7 +24,8 @@ public class TurnoController:ControllerBase{
                 Where(t => t.UsuarioId == IdUsuario && t.Estado == 2 || t.Estado == 3)
                 .Include(t => t.Pago)
                 .Include(t => t.Cancha)
-                .ThenInclude(t => t.Tipo).ToList();
+                // .ThenInclude(t => t.Tipo).ToList();
+                .ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }
@@ -47,7 +48,8 @@ public class TurnoController:ControllerBase{
 
     [HttpGet("pendientes")]//turnos que vienen a partir de ahora y que no han sido cancelados, y que el pago de la reserva se ha completado  (estado = 2)
     public IActionResult MisProximosTurnos(){
-        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1 && t.Pago.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderBy(t => t.FechaInicio).ToList();
+        // var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1 && t.Pago.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderBy(t => t.FechaInicio).ToList();
+        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaInicio >= DateTime.Now && t.Estado == 1 && t.Pago.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).OrderBy(t => t.FechaInicio).ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }
@@ -56,7 +58,8 @@ public class TurnoController:ControllerBase{
 
     [HttpGet("estado/{estado}")]
     public IActionResult TurnosPorUsuarioYEstado(int estado){
-        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.Estado == estado).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderByDescending(t => t.FechaCancelacion).ToList();
+        // var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.Estado == estado).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(c => c.Tipo).OrderByDescending(t => t.FechaCancelacion).ToList();
+        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.Estado == estado).Include(t => t.Pago).Include(t => t.Cancha).OrderByDescending(t => t.FechaCancelacion).ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }
@@ -65,7 +68,8 @@ public class TurnoController:ControllerBase{
 
     [HttpGet("completados")]//turnos que han sido completados
     public IActionResult TurnosPasadosCumplidos(){
-        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaFin <= DateTime.Now && t.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(t => t.Tipo).ToList();
+        // var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaFin <= DateTime.Now && t.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).ThenInclude(t => t.Tipo).ToList();
+        var turnos = context.Turno.Where(t => t.UsuarioId == IdUsuario && t.FechaFin <= DateTime.Now && t.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).ToList();
         if(turnos.Count > 0){
             return Ok(turnos);
         }

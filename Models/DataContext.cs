@@ -7,7 +7,6 @@ public class DataContext:DbContext{
 
     public DbSet<Usuario> Usuario {get; set;}
     public DbSet<Cancha> Cancha {get; set;}
-    public DbSet<Tipo> Tipo {get; set;}
     public DbSet<Turno> Turno {get; set;}
     public DbSet<Pago> Pago {get; set;}
     public DbSet<Horarios> Horarios {get; set;}

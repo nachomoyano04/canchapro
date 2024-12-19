@@ -47,6 +47,17 @@ public class CanchaController:ControllerBase{
         return BadRequest();
     }
     
+    [HttpPatch("estado/{id}")]
+    public IActionResult CambioEstado(int id, [FromForm] int estado){
+        var court = context.Cancha.FirstOrDefault(c => c.Id == id);
+        if(court != null){
+            court.Estado = estado;
+            context.SaveChanges();
+            return Ok("Cambios realizados con éxito");
+        }
+        return BadRequest("No se encontró la cancha");
+    }
+
     [HttpPatch]
     public IActionResult EditarCancha([FromForm] Cancha cancha, [FromForm] IFormFile? imagen){
         var court = context.Cancha.FirstOrDefault(c => c.Id == cancha.Id);
@@ -54,6 +65,7 @@ public class CanchaController:ControllerBase{
             court.Nombre = cancha.Nombre;
             court.CapacidadTotal = cancha.CapacidadTotal;
             court.TipoDePiso = cancha.TipoDePiso;
+            Console.WriteLine($"imagen: {imagen}");
             if(imagen != null && imagen.Length > 0){
                 var fileName = $"{cancha.Id}_{Guid.NewGuid()}{Path.GetExtension(imagen.FileName)}";
                 var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img/cancha", fileName);
@@ -64,7 +76,9 @@ public class CanchaController:ControllerBase{
             }
             court.PrecioPorHora = cancha.PrecioPorHora;
             court.Descripcion = cancha.Descripcion;
-            court.Estado = cancha.Estado;
+            if(cancha.Estado > 0){
+                court.Estado = cancha.Estado;
+            }
             context.SaveChanges();
             return Ok("Cambios realizados");
         }

@@ -259,4 +259,11 @@ public class TurnoController:ControllerBase{
         var horas = minutosTurno / 60;
         return porHora * horas;
     }
+
+    //CONSULTAS PARA GESTION WEB
+    [HttpGet("todos")]
+    public IActionResult GetTodosLosProximosTurnos(){
+        var turnos = context.Turno.Where(t => t.FechaInicio >= DateTime.Now && t.Pago.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).ToList();
+        return Ok(turnos);
+    } 
 }

@@ -31,13 +31,20 @@ public class CanchaController:ControllerBase{
     }
 
     //En un principio allowanonymous, despues solo los del rol administrador...
-    [AllowAnonymous]
     [HttpPost]
-    public IActionResult CrearCancha([FromForm] Cancha cancha){
-        if(cancha != null){
-            cancha.Estado = 1;
-            cancha.Imagen = "default.jpg";
-            context.Cancha.Add(cancha);
+    public IActionResult CrearCancha([FromForm] Cancha c, [FromForm] IFormFile? imagen){
+        if(c != null){
+            if(imagen != null && imagen.Length > 0){
+                var fileName = $"{new Random().Next(1, 100)}_{Guid.NewGuid()}{Path.GetExtension(imagen.FileName)}";
+                var path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img/cancha", fileName);
+                using(var stream = new FileStream(path, FileMode.Create)){
+                    imagen.CopyTo(stream);
+                }
+                c.Imagen = fileName;
+            }else{
+                c.Imagen = "default.jpg";
+            }
+            context.Cancha.Add(c);
             int filasInsertadas = context.SaveChanges();
             Console.WriteLine($"Filas insertadas: {filasInsertadas}");
             if(filasInsertadas > 0){
@@ -61,7 +68,7 @@ public class CanchaController:ControllerBase{
     [HttpPatch]
     public IActionResult EditarCancha([FromForm] Cancha cancha, [FromForm] IFormFile? imagen){
         var court = context.Cancha.FirstOrDefault(c => c.Id == cancha.Id);
-        if(court != null){
+        if(court != null){  
             court.Nombre = cancha.Nombre;
             court.CapacidadTotal = cancha.CapacidadTotal;
             court.TipoDePiso = cancha.TipoDePiso;

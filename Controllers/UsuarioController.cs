@@ -205,4 +205,16 @@ public class UsuarioController:ControllerBase{
             client.Authenticate(configuration["SMPT:User"], configuration["SMPT:Password"]);//estas credenciales deben estar en el user secrets
             client.Send(mensaje);
     }
+
+    //ENDPOINTS PARA PARTE WEB
+    
+    [HttpGet("obtener/{id}")]
+    public IActionResult GetUsuarioById(int id){
+        var usuario = context.Usuario.FirstOrDefault(u => u.Id == id);
+        if(usuario != null){
+            return Ok(usuario);
+        }
+        return BadRequest("El usuario no existe");
+    }
+
 }

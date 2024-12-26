@@ -272,4 +272,10 @@ public class TurnoController:ControllerBase{
         var turnos = context.Turno.Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).ToList();
         return Ok(turnos);
     } 
+
+    [HttpGet("todos/estado/{estado}")]
+    public IActionResult GetTodosPorEstado(int estado){
+        var turnos = context.Turno.Where(t => t.Estado == estado).Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).ToList();
+        return Ok(turnos);
+    }
 }

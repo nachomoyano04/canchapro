@@ -25,7 +25,6 @@ public class CanchaController:ControllerBase{
     //http://ip:puerto/api/cancha
     [HttpGet("{estado}")]
     public IActionResult GetCanchas(int estado){
-        // var canchas = context.Cancha.Where(c => c.Estado == estado).Include(c => c.Tipo).ToList();
         var canchas = context.Cancha.Where(c => c.Estado == estado).ToList();
         return Ok(canchas);
     }
@@ -90,5 +89,13 @@ public class CanchaController:ControllerBase{
             return Ok("Cambios realizados");
         }
         return BadRequest("La cancha no se encontró");
+    }
+
+    //ENDPOINTS PARTE WEB
+
+    [HttpGet("todas")]
+    public IActionResult Todas(){
+        var canchas = context.Cancha.ToList();
+        return Ok(canchas);
     }
 }

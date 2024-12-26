@@ -261,9 +261,15 @@ public class TurnoController:ControllerBase{
     }
 
     //CONSULTAS PARA GESTION WEB
-    [HttpGet("todos")]
+    [HttpGet("todos/proximos")]
     public IActionResult GetTodosLosProximosTurnos(){
         var turnos = context.Turno.Where(t => t.FechaInicio >= DateTime.Now && t.Pago.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).ToList();
+        return Ok(turnos);
+    } 
+
+    [HttpGet("todos/historial")]
+    public IActionResult GetHistorialDeTurnos(){
+        var turnos = context.Turno.Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).ToList();
         return Ok(turnos);
     } 
 }

@@ -263,19 +263,37 @@ public class TurnoController:ControllerBase{
     //CONSULTAS PARA GESTION WEB
     [HttpGet("todos/proximos")]
     public IActionResult GetTodosLosProximosTurnos(){
-        var turnos = context.Turno.Where(t => t.FechaInicio >= DateTime.Now && t.Pago.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).ToList();
+        var turnos = context.Turno.Where(t => t.FechaInicio >= DateTime.Now && t.Pago.Estado == 2).Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).OrderByDescending(t => t.FechaFin).ToList();
         return Ok(turnos);
     } 
 
     [HttpGet("todos/historial")]
     public IActionResult GetHistorialDeTurnos(){
-        var turnos = context.Turno.Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).ToList();
+        var turnos = context.Turno.Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).OrderByDescending(t => t.FechaFin).ToList();
         return Ok(turnos);
     } 
 
     [HttpGet("todos/estado/{estado}")]
     public IActionResult GetTodosPorEstado(int estado){
-        var turnos = context.Turno.Where(t => t.Estado == estado).Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).ToList();
+        var turnos = context.Turno.Where(t => t.Estado == estado).Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).OrderByDescending(t => t.FechaFin).ToList();
+        return Ok(turnos);
+    }
+
+    [HttpGet("todos/cancha/{id}")]
+    public IActionResult GetTodosPorCancha(int id){
+        var turnos = context.Turno.Where(t => t.CanchaId == id).Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).OrderByDescending(t => t.FechaFin).ToList();
+        return Ok(turnos);
+    }
+
+    [HttpGet("todos/usuario/{dni}")]
+    public IActionResult GetTodosPorDniUsuario(string dni){
+        var turnos = context.Turno.Where(t => t.Usuario.Dni == dni).Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).OrderByDescending(t => t.FechaFin).ToList();
+        return Ok(turnos);
+    }
+
+    [HttpGet("todos/fecha/{fecha}")]
+    public IActionResult GetTodosPorDniUsuario(DateTime fecha){
+        var turnos = context.Turno.Where(t => t.FechaInicio.Date.Equals(fecha)).Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).OrderByDescending(t => t.FechaFin).ToList();
         return Ok(turnos);
     }
 }

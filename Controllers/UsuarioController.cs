@@ -217,4 +217,9 @@ public class UsuarioController:ControllerBase{
         return BadRequest("El usuario no existe");
     }
 
+    [HttpGet("obtener/dni/{dni}")]
+    public IActionResult GetUsuarioByDni(string dni){
+        var usuario = context.Usuario.FirstOrDefault(u => u.Dni == dni);
+        return Ok(usuario);
+    }
 }

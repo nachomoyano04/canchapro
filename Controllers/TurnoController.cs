@@ -296,4 +296,12 @@ public class TurnoController:ControllerBase{
         var turnos = context.Turno.Where(t => t.FechaInicio.Date.Equals(fecha)).Include(t => t.Pago).Include(t => t.Cancha).Include(t => t.Usuario).OrderByDescending(t => t.FechaFin).ToList();
         return Ok(turnos);
     }
+
+
+    /*
+    para cancha pro web
+    en historial o ver todos los turnos
+    .Poner botón para confimar pago de 
+    reserva o para cambiar estados de turnos y pagos...
+    */
 }

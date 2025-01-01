@@ -94,8 +94,8 @@ public class CanchaController:ControllerBase{
     //ENDPOINTS PARTE WEB
 
     [HttpGet("todas")]
-    public IActionResult Todas(){
-        var canchas = context.Cancha.ToList();
+    public IActionResult Todas(){ //QUE ESTEN DISPONIBLES
+        var canchas = context.Cancha.Where(c => c.Estado == 1).ToList();
         return Ok(canchas);
     }
 }

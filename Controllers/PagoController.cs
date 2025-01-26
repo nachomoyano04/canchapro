@@ -29,4 +29,18 @@ public class PagoController:ControllerBase{
         return BadRequest("No se ha encontrado");
     }
 
+    [HttpGet]
+    public IActionResult ObtenerPagos(){
+        var pagos = context.Pago.ToList();
+        return Ok(pagos);
+    }
+
+    [HttpGet("{id}")]
+    public IActionResult ObtenerPago(int id){
+        var pago = context.Pago.FirstOrDefault(p => p.Id == id);
+        if(pago == null){
+            return BadRequest("No existe el pago");
+        }
+        return Ok(pago);
+    }
 }

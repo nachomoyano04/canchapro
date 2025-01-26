@@ -156,7 +156,7 @@ public class UsuarioController:ControllerBase{
             usuario.Estado = true;
             context.Usuario.Add(usuario);
             context.SaveChanges();
-            return Ok("Usuario creado con éxito");
+            return Ok($"Usuario creado con éxito:{usuario.Id}");
         }
         return BadRequest("Debe completar todos los campos");
     }

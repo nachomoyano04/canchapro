@@ -41,6 +41,14 @@ public class UsuarioController:ControllerBase{
         return BadRequest("No hay usuario logueado");
     }
 
+    [HttpGet("todos")]
+    public IActionResult ObtenerTodos(){
+        //Ver que si le pongo roles a los usuarios entonces este endpoint
+        // me debería traer solo los usuarios de tipo rol cliente...
+        var usuarios = context.Usuario.ToList();
+        return Ok(usuarios);
+    }
+
     
     [AllowAnonymous]
     [HttpPost("login")]
@@ -153,7 +161,7 @@ public class UsuarioController:ControllerBase{
             if(usuarioConCorreo != null){
                 return BadRequest("El correo ya existe");
             }
-            usuario.Estado = true;
+            usuario.Estado = 1;
             context.Usuario.Add(usuario);
             context.SaveChanges();
             return Ok($"Usuario creado con éxito:{usuario.Id}");

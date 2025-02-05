@@ -52,12 +52,12 @@ public class HorariosController:ControllerBase{
     }
 
     [HttpGet("{idCancha}")]
-    public IActionResult HorariosDesdeYHastaPorCancha(int idCancha, [FromQuery] DateTime fecha){
+    public IActionResult HorariosDesdeYHastaPorCancha(int idCancha, [FromQuery] string dia){
         var cancha = context.Cancha.FirstOrDefault(c => c.Id == idCancha);
         if(cancha == null){
             return BadRequest("La cancha no existe");
         }
-        var horarios = context.Horarios.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal.Equals(fecha.DayOfWeek.ToString()));
+        var horarios = context.Horarios.FirstOrDefault(h => h.CanchaId == idCancha && h.DiaSemanal.ToLower().Equals(dia.ToLower()));
         if(horarios == null){
             return BadRequest("No hay horarios para este dia");
         }

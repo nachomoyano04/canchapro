@@ -135,4 +135,19 @@ public class HorariosController:ControllerBase{
         }
         return Ok(horarios);
     }
+
+    [HttpPut]
+    public IActionResult EditarHorario([FromBody] Horarios hor){
+        Console.WriteLine($"horario id: {hor.Id}");
+        Console.WriteLine($"HoraInicio: {hor.HoraInicio}");
+        Console.WriteLine($"HoraFin: {hor.HoraFin}");
+        var horarios = context.Horarios.FirstOrDefault(h => h.Id == hor.Id);
+        if(horarios != null){
+            horarios.HoraInicio = hor.HoraInicio;
+            horarios.HoraFin = hor.HoraFin;
+            context.SaveChanges();
+            return Ok("Horario editado");
+        }
+        return BadRequest("El horario no existe.");
+    }
 }

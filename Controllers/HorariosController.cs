@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Asn1.Cms;
 
 [ApiController]
@@ -23,6 +24,11 @@ public class HorariosController:ControllerBase{
         return 0;
     }
 
+    [HttpGet]
+    public IActionResult TodosLosHorarios(){
+        var horarios = context.Horarios.Include(h => h.Cancha).ToList();
+        return Ok(horarios);
+    }
 
     //Definir horarios para las canchas, esto luego lo va a hacer una sola alta de canchas
     //se crearia la cancha, y los horarios desde y hasta para cada dia
